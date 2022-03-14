@@ -16,6 +16,8 @@
 float lastX = 1280.0f / 2.0f;
 float lastY = 720.0f / 2.0f;
 
+bool firstMouse = false;
+bool cursor = false;
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 static void glfw_error_callback(int error, const char* description)
@@ -37,7 +39,7 @@ static void processInput(GLFWwindow* window, float deltaTime)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
-	/*if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
 	{
 		if (cursor)
 		{
@@ -54,14 +56,13 @@ static void processInput(GLFWwindow* window, float deltaTime)
 			glfwSetCursorPos(window, w / 2, h / 2);
 		}
 	}
-	*/
+
 }
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-
-		
-
+	if(!cursor)
+	{
 		float xoffset = xpos - lastX;
 		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
@@ -69,7 +70,8 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		lastY = ypos;
 
 		camera.ProcessMouseMovement(xoffset, yoffset);
-
+	}
+	
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -94,13 +96,15 @@ int main(int, char**)
 
 
 	// Create window with graphics context
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "3 - Neigbourhood", NULL, NULL);
 	if (window == NULL)
 		return 1;
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSwapInterval(1); // Enable vsync
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 
 	bool err = !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 	if (err)
@@ -151,7 +155,6 @@ int main(int, char**)
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 		{
 			static float f = 0.0f;
 			static int counter = 0;
