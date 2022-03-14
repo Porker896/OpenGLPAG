@@ -16,6 +16,10 @@
 float lastX = 1280.0f / 2.0f;
 float lastY = 720.0f / 2.0f;
 
+bool firstMouse = true;
+bool wireframe = false;
+bool cursor = false;
+
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 static void glfw_error_callback(int error, const char* description)
@@ -37,7 +41,7 @@ static void processInput(GLFWwindow* window, float deltaTime)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
-	/*if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
 	{
 		if (cursor)
 		{
@@ -54,27 +58,35 @@ static void processInput(GLFWwindow* window, float deltaTime)
 			glfwSetCursorPos(window, w / 2, h / 2);
 		}
 	}
-	*/
+
 }
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	if (!cursor)
+	{
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+	}
 
-		
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-		float xoffset = xpos - lastX;
-		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	lastX = xpos;
+	lastY = ypos;
 
-		lastX = xpos;
-		lastY = ypos;
-
-		camera.ProcessMouseMovement(xoffset, yoffset);
+	camera.ProcessMouseMovement(xoffset, yoffset);
 
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.ProcessMouseScroll(yoffset);
+	if(!cursor)
+		camera.ProcessMouseScroll(yoffset);
 }
 
 int main(int, char**)
