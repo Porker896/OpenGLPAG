@@ -9,6 +9,7 @@
 
 #include <glad/glad.h>  // Initialize with gladLoadGL()
 #include <GLFW/glfw3.h> // Include glfw3.h after our OpenGL definitions
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Camera.h"
 #include "Object.h"
@@ -143,9 +144,11 @@ int main(int, char**)
 	ImVec4 clear_color = ImVec4(.22f, .22f, .22f, 1.00f);
 
 
-	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
+	//Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
+	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
 
-	Object nanosuit("res/models/nanosuit/nanosuit.obj", &basicShader);
+	//Object nanosuit("res/models/nanosuit/nanosuit.obj", &basicShader);
+	Object cube("res/models/cube/cube.obj", &lightShader);
 
 	//Model pointLight("res/models/cube/cube.obj");
 	//Model spotLight("res/models/cone/cone.obj");
@@ -153,6 +156,13 @@ int main(int, char**)
 	float deltaTime = 0;
 	float lastFrame = 0;
 
+	glm::vec3 direction(0,0,0);
+	glm::vec3 ambient(0);
+	glm::vec3 diffuse(0);
+	glm::vec3 specular(0);
+
+
+	static float f = 0.0f;
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
@@ -164,7 +174,7 @@ int main(int, char**)
 		glfwPollEvents();
 		processInput(window, deltaTime);
 
-		nanosuit.Update();
+		//nanosuit.Update();
 
 		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -175,13 +185,17 @@ int main(int, char**)
 		ImGui::NewFrame();
 
 		{
-			static float f = 0.0f;
+			
 
 			ImGui::Begin("Inspector");
 
 			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);           
 			ImGui::ColorEdit3("clear color", reinterpret_cast<float*>(&clear_color)); 
 
+			ImGui::SliderFloat3("Direction", glm::value_ptr(direction), -1.0f, 1.0f);
+			ImGui::ColorEdit3("Ambient",glm::value_ptr(ambient));
+			ImGui::ColorEdit3("Diffuse",glm::value_ptr(diffuse));
+			ImGui::ColorEdit3("Specular",glm::value_ptr(specular));
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::End();
 		}
@@ -189,9 +203,20 @@ int main(int, char**)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
 		glm::mat4 VP = projection * camera.GetViewMatrix();
 
-		basicShader.use();
-		basicShader.setMat4("VP", VP);
-		nanosuit.Draw();
+		//basicShader.use();
+		//basicShader.setMat4("VP", VP);
+		lightShader.use();
+		lightShader.setMat4("VP", VP);
+		lightShader.setVec3("viewPos", camera.Position);
+		lightShader.setBool("dirLight.isActive", true);
+		lightShader.setVec3("dirLight.direction", direction);
+		lightShader.setVec3("dirLight.ambient", ambient);
+		lightShader.setVec3("dirLight.diffuse", diffuse);
+		lightShader.setVec3("dirLight.specular", specular);
+		lightShader.setFloat("shininess", f);
+
+		//nanosuit.Draw();
+		cube.Draw();
 
 		// Rendering
 		ImGui::Render();

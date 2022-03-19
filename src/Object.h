@@ -16,10 +16,11 @@ class Object
 
 	Shader* shader = nullptr;
 
+
 public:
 
 	Object* parent = nullptr;
-	Transform transform;
+	Transform* transform = nullptr;
 
 	Object(const std::string& modelPath, Shader* objShader);
 	~Object();
