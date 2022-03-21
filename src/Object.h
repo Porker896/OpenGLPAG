@@ -9,6 +9,7 @@
 
 class Object
 {
+protected:
 
 	std::list<Object*> children;
 
@@ -16,10 +17,10 @@ class Object
 
 	Shader* shader = nullptr;
 
-
 public:
 
 	Object* parent = nullptr;
+
 	Transform* transform = nullptr;
 
 	Object(const std::string& modelPath, Shader* objShader);
