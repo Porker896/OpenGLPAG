@@ -1,34 +1,86 @@
 #include "LightObject.h"
 
-void SpotLight::PassToShader(Shader* shader) const
+void SpotLight::PassToShader(Shader* shader, const int id) const
 {
-	shader->setBool("spotLight.isActive", isActive);
-	shader->setVec3("spotLight.ambient", ambient);
-	shader->setVec3("spotLight.diffuse", diffuse);
-	shader->setVec3("spotLight.specular", specular);
+	std::string name("spotLights[");
+	name.append(std::to_string(id) + "]");
+	const auto buff = name;
 
-	shader->setFloat("spotLight.cutOff", cutOff);
-	shader->setFloat("spotLight.outerutOff", outerCutOff);
-	shader->setFloat("spotLight.constant", constant);
-	shader->setFloat("spotLight.linear", linear);
-	shader->setFloat("spotLight.quadratic", quadratic);
+	shader->setBool(name.append(".isActive"), isActive);
+	name = buff;
+
+	shader->setVec3(name.append(".colors.ambient"), colors.ambient);
+	name = buff;
+
+	shader->setVec3(name.append(".colors.diffuse"), colors.diffuse);
+	name = buff;
+
+	shader->setVec3(name.append(".colors.specular"), colors.specular);
+	name = buff;
+
+	shader->setFloat(name.append(".cutOff"), cutOff);
+	name = buff;
+
+	shader->setFloat(name.append(".outerCutOff"), outerCutOff);
+	name = buff;
+
+	shader->setFloat(name.append(".att.constant"), att.constant);
+	name = buff;
+
+	shader->setFloat(name.append(".att.linear"), att.linear);
+	name = buff;
+
+	shader->setFloat(name.append(".att.quadratic"), att.quadratic);
+	name = buff;
+
 
 }
 
-void PointLight::PassToShader(Shader* shader) const
+void PointLight::PassToShader(Shader* shader, const int id) const
 {
-		shader->setBool("pointLight.isActive", isActive);
-	shader->setVec3("pointLight.ambient", ambient);
-	shader->setVec3("pointLight.diffuse", diffuse);
-	shader->setVec3("pointLight.specular", specular);
+	std::string name = "pointLights[";
+	name.append(std::to_string(id) + "]");
+	const std::string buff = name;
 
-	shader->setFloat("pointLight.constant", constant);
-	shader->setFloat("pointLight.linear", linear);
-	shader->setFloat("pointLight.quadratic", quadratic);
+	shader->setBool(name.append(".isActive"), isActive);
+	name = buff;
+	shader->setVec3(name.append(".colors.ambient"), colors.ambient);
+	name = buff;
+
+	shader->setVec3(name.append(".colors.diffuse"), colors.diffuse);
+	name = buff;
+
+	shader->setVec3(name.append(".colors.specular"), colors.specular);
+	name = buff;
+
+	shader->setFloat(name.append(".att.constant"), att.constant);
+	name = buff;
+
+	shader->setFloat(name.append(".att.linear"), att.linear);
+	name = buff;
+
+	shader->setFloat(name.append(".att.quadratic"), att.quadratic);
+	name = buff;
+
 }
 
-void LightObject::passToShader()
+LightObject::LightObject(const std::string& path, Shader* objShader, Shader* sceneLightShader) : Object(path, objShader)
 {
-	spotLight.PassToShader(shader);
-	pointLight.PassToShader(shader);
+	lightShader = sceneLightShader;
+	id += lightObjectId;
+	lightObjectId++;
+}
+
+LightObject::LightObject(const std::string& path, Shader* objShader) : Object(path, objShader)
+{
+	id += lightObjectId;
+	lightObjectId++;
+}
+
+void LightObject::PassToShader() 
+{
+	pointLight.position = transform->getLocalPosition();
+
+	spotLight.PassToShader(lightShader, id);
+	pointLight.PassToShader(lightShader, id);
 }

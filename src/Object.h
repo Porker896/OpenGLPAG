@@ -24,10 +24,9 @@ public:
 	Transform* transform = nullptr;
 
 	Object(const std::string& modelPath, Shader* objShader);
-	~Object();
-	void Update();
+	virtual void Update();
 	void AddChild(Object* child);
-	void Draw() const;
+	void Draw();
 };
 
 #endif

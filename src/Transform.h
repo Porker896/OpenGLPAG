@@ -28,9 +28,9 @@ public:
 
 	void setLocalScale(const glm::vec3& newScale);
 
-	const glm::vec3& getLocalPosition();
+	const glm::vec3& getLocalPosition() const;
 
-	const glm::mat4& getLocalModelMatrix();
+	const glm::mat4& getLocalModelMatrix() const;
 
 	bool isDirty();
 

@@ -1,14 +1,10 @@
 #include "Object.h"
 
-Object::Object(const std::string& modelPath, Shader* objShader) : model(new Model(modelPath)), shader(objShader)
-{
-	transform = new Transform();
-}
-
-Object::~Object()
+Object::Object(const std::string& modelPath, Shader* objShader) : model(new Model(modelPath)), shader(objShader), transform(new Transform())
 {
 
 }
+
 
 void Object::AddChild(Object* child)
 {
@@ -23,7 +19,7 @@ void Object::Update()
 		return;
 	}
 
-	if (parent)
+	if (parent != nullptr)
 	{
 		transform->computeModelMatrix(parent->transform->getLocalModelMatrix());
 	}
@@ -32,13 +28,16 @@ void Object::Update()
 		transform->computeModelMatrix();
 	}
 
-	for (auto&& child : children)
-		child->Update();
-
+	if (!children.empty())
+	{
+		for (auto&& child : children)
+			child->Update();
+	}
 }
 
-void Object::Draw() const
+void Object::Draw()
 {
+	shader->use();
 	shader->setMat4("model", transform->getLocalModelMatrix());
 	model->Draw(*shader);
 }

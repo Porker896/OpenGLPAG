@@ -4,47 +4,58 @@
 
 #include "Object.h"
 
+struct BaseLight
+{
+	glm::vec3 ambient = glm::vec3(0.0f);
+	glm::vec3 diffuse = glm::vec3(0.0f);
+	glm::vec3 specular = glm::vec3(0.0f);
+};
+
+struct Attenuation
+{
+	float constant = 1.0f;
+	float linear = 0.7f;
+	float quadratic = 1.8f;
+};
+
 struct PointLight
 {
 	bool isActive = false;
-
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-
-	float constant, linear, quadratic;
-
-	void PassToShader(Shader* shader) const;
-
+	glm::vec3 position = {0.0f,0.0f,0.0f};
+	BaseLight colors;
+	Attenuation att;
+	void PassToShader(Shader* shader, const int id) const;
 };
 
-struct SpotLight
+struct SpotLight : PointLight
 {
-	bool isActive;
 
-	glm::vec3 direction;
+	glm::vec3 direction = { 0.0f, 0.0f, -1.0f };
 
-	float cutOff;
-	float outerCutOff;
+	float cutOff = 0.91f;
+	float outerCutOff = 0.82f;
 
-	float constant;
-	float linear;
-	float quadratic;
-
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-
-	void PassToShader(Shader* shader) const;
+	void PassToShader(Shader* shader, const int id) const;
 };
 
 class LightObject : public Object
 {
-	SpotLight spotLight;
-	PointLight pointLight;
+	inline static int lightObjectId = 1;
+
+	inline static Shader* lightShader = nullptr;
 
 public:
-	void passToShader();
+	int id = -1;
+
+	SpotLight spotLight;
+
+	PointLight pointLight;
+
+	LightObject(const std::string& path, Shader* shader, Shader* lightShader);
+
+	LightObject(const std::string& path, Shader* objShader);
+
+	void PassToShader();
 };
 
 

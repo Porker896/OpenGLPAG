@@ -29,7 +29,6 @@ void Transform::computeModelMatrix(const glm::mat4& parentGlobalMatrix)
 {
 	computeModelMatrix();
 	modelMatrix = parentGlobalMatrix * modelMatrix;
-
 }
 
 void Transform::setLocalRotation(const glm::vec3 & newRotation)
@@ -68,12 +67,12 @@ void Transform::setLocalScale(const glm::vec3 & newScale)
 	dirty = true;
 }
 
-const glm::vec3& Transform::getLocalPosition()
+const glm::vec3& Transform::getLocalPosition() const
 {
 	return pos;
 }
 
-const glm::mat4& Transform::getLocalModelMatrix()
+const glm::mat4& Transform::getLocalModelMatrix() const
 {
 	return modelMatrix;
 }
