@@ -319,39 +319,42 @@ int main(int, char**)
 		lightShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
 		lightShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
 
-		lightShader.setFloat("spotLights[0].cutOff", glm::radians(spotLightCutOff));
-		lightShader.setFloat("spotLights[0].outerCutOff", glm::radians(spotLightOuterCutOff));
+		lightShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
+		lightShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
 		
 		//SPOT LIGHT 
-		lightShader.setBool("spotLights[1].isActive", isSpot1Active);
-		
-		lightShader.setVec3("spotLights[1].position", spotLight1Position);
-		lightShader.setVec3("spotLights[1].direction", spotLight1Direction);
-		lightShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
-		lightShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
-		lightShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
-		
-		lightShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
-		lightShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
-		lightShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
-
-		lightShader.setFloat("spotLights[1].cutOff", spotLight1CutOff);
-		lightShader.setFloat("spotLights[1].outerCutOff", spotLight1OuterCutOff);
-		
+		//lightShader.setBool("spotLights[1].isActive", isSpot1Active);
+		//
+		//lightShader.setVec3("spotLights[1].position", spotLight1Position);
+		//lightShader.setVec3("spotLights[1].direction", spotLight1Direction);
+		//lightShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
+		//lightShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
+		//lightShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
+		//
+		//lightShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
+		//lightShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
+		//lightShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
+		//
+		//lightShader.setFloat("spotLights[1].cutOff", spotLight1CutOff);
+		//lightShader.setFloat("spotLights[1].outerCutOff", spotLight1OuterCutOff);
+		//
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
 		pointLight.transform->setLocalPosition(pointLightPosition);
 		spotLightGizmo.transform->setLocalPosition(spotLightPosition);
-		spotLightGizmo.transform->setLocalRotation(180.0f * spotLightDirection);
+		//spotLightGizmo.transform->setLocalRotation(-360.0f * spotLightDirection);
+		//spotLightGizmo.transform->setModelMatrix(glm::inverse(glm::lookAt(spotLightPosition,spotLightPosition + spotLightDirection,
+		//	glm::vec3(0.0f,1.0f,0.0f))));
+		spotLightGizmo.Draw();
+
 
 		cube.transform->setLocalPosition({0,0,0});
 
 		cube.Update();
 
 		pointLight.Draw();
-		spotLightGizmo.Draw();
 
 		lightShader.use();
 		roof.Draw();

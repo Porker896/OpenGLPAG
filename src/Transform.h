@@ -25,7 +25,7 @@ public:
 	void setLocalRotationX(const float newX);
 	void setLocalRotationY(const float newY);
 	void setLocalRotationZ(const float newZ);
-
+	void setModelMatrix(const glm::mat4& newModel);
 	void setLocalScale(const glm::vec3& newScale);
 
 	const glm::vec3& getLocalPosition() const;

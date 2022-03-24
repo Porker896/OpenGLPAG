@@ -61,6 +61,12 @@ void Transform::setLocalRotationZ(const float newZ)
 	dirty = true;
 }
 
+void Transform::setModelMatrix(const glm::mat4& newModel)
+{
+	modelMatrix = newModel;
+	dirty= true;
+}
+
 void Transform::setLocalScale(const glm::vec3 & newScale)
 {
 	scale = newScale;
