@@ -8,6 +8,7 @@ file(GLOB_RECURSE HEADER_FILES
 	 *.h
 	 *.hpp)
 
+
 # Define the executable
 add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)

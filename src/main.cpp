@@ -112,12 +112,13 @@ int main(int, char**)
 
 	// Create window with graphics context
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "3 - Neighbourhood", NULL, NULL);
-	if (window == NULL)
+	if (window == nullptr)
 		return 1;
+
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSwapInterval(1); // Enable vsync
+	glfwSwapInterval(0); // Enable vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
@@ -146,29 +147,15 @@ int main(int, char**)
 	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
 	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
 
-	//Object nanosuit("res/models/nanosuit/nanosuit.obj", &basicShader);
-	Object cube("res/models/cube/cube.obj", &lightShader);
-	Object roof("res/models/pyramid/pyramid.obj", &lightShader);
-	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
-	Object pointLight("res/models/cube/cube.obj", &basicShader);
 
-	//std::vector<LightObject> spotLights;
-	//spotLights.emplace_back(spotLightGizmo);
-
-	cube.AddChild(&roof);
-	cube.AddChild(&pointLight);
-	cube.AddChild(&spotLightGizmo);
-
-	spotLightGizmo.transform->setLocalScale({.2f,.2f,.2f});
-	pointLight.transform->setLocalScale({.2f,.2f,.2f});
-	roof.transform->setLocalPosition({0,2.0f,0});
-
-	cube.Update();
 
 	float deltaTime = 0;
 	float lastFrame = 0;
 
+	float shininess = 2.0f;
+
 	//DIR LIGHT PROPERTIES
+	bool isDirLight = false;
 	glm::vec3 direction(0, 0, 0);
 	glm::vec3 ambient(0);
 	glm::vec3 diffuse(0);
@@ -209,23 +196,38 @@ int main(int, char**)
 	float spotLight1CutOff = 12.5f;
 	float spotLight1OuterCutOff = 17.5f;
 
-	static float shininess = 2.0f;
-	static bool isDirLight = false;
+	Object cube("res/models/cube/cube.obj", &lightShader);
+	Object roof("res/models/pyramid/pyramid.obj", &lightShader);
+	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
+	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
+	Object pointLight("res/models/cube/cube.obj", &basicShader);
 
 
+
+	cube.AddChild(&roof);
+	cube.AddChild(&pointLight);
+	cube.AddChild(&spotLightGizmo);
+	cube.AddChild(&spotLight1Gizmo);
+
+	const auto gizmoScale = glm::vec3(0.2f);
+	spotLightGizmo.transform->setLocalScale(gizmoScale);
+	spotLight1Gizmo.transform->setLocalScale(gizmoScale);
+	pointLight.transform->setLocalScale(gizmoScale);
+	roof.transform->setLocalPosition({ 0,2.0f,0 });
+
+	cube.Update();
 
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
-		float currentFrame = glfwGetTime();
+		auto currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
 		glfwPollEvents();
 		processInput(window, deltaTime);
 
-		//nanosuit.Update();
 
 		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -235,6 +237,7 @@ int main(int, char**)
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		//UI
 		{
 			ImGui::Begin("Inspector");
 
@@ -260,7 +263,7 @@ int main(int, char**)
 
 			ImGui::Text("SPOT LIGHT");
 			ImGui::Checkbox("Spot light", &isSpotActive);
-			ImGui::DragFloat3("Spot light position", glm::value_ptr(spotLightPosition),.1f, -10.0f,10.0f);
+			ImGui::DragFloat3("Spot light position", glm::value_ptr(spotLightPosition), .1f, -10.0f, 10.0f);
 			ImGui::SliderFloat3("Spot light direction", glm::value_ptr(spotLightDirection), -1.0f, 1.0f);
 
 			ImGui::ColorEdit3("Spot light ambient", glm::value_ptr(spotLightAmbient));
@@ -272,6 +275,19 @@ int main(int, char**)
 			ImGui::InputFloat("Spot light cut off", &spotLightCutOff);
 			ImGui::InputFloat("Spot light outer cut off", &spotLightOuterCutOff);
 
+			ImGui::Text("SPOT LIGHT 1");
+			ImGui::Checkbox("Spot light 1", &isSpot1Active);
+			ImGui::DragFloat3("Spot light 1 position", glm::value_ptr(spotLight1Position), .1f, -10.0f, 10.0f);
+			ImGui::SliderFloat3("Spot light 1 direction", glm::value_ptr(spotLight1Direction), -1.0f, 1.0f);
+
+			ImGui::ColorEdit3("Spot light 1 ambient", glm::value_ptr(spotLight1Ambient));
+			ImGui::ColorEdit3("Spot light 1 diffuse", glm::value_ptr(spotLight1Diffuse));
+			ImGui::ColorEdit3("Spot light 1 specular", glm::value_ptr(spotLight1Specular));
+			ImGui::InputFloat("Spot light 1 constant", &spotLight1Constant);
+			ImGui::InputFloat("Spot light 1 linear", &spotLight1Linear);
+			ImGui::InputFloat("Spot light 1 quadratic", &spotLight1Quadratic);
+			ImGui::InputFloat("Spot light 1 cut off", &spotLight1CutOff);
+			ImGui::InputFloat("Spot light 1 outer cut off", &spotLight1OuterCutOff);
 
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::End();
@@ -307,58 +323,64 @@ int main(int, char**)
 
 		//SPOT LIGHT 
 		lightShader.setBool("spotLights[0].isActive", isSpotActive);
-		
+
 		lightShader.setVec3("spotLights[0].position", spotLightPosition);
 		lightShader.setVec3("spotLights[0].direction", spotLightDirection);
 
 		lightShader.setFloat("spotLights[0].att.constant", spotLightConstant);
 		lightShader.setFloat("spotLights[0].att.linear", spotLightLinear);
 		lightShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
-		
+
 		lightShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
 		lightShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
 		lightShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
 
 		lightShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
 		lightShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
-		
+
 		//SPOT LIGHT 
-		//lightShader.setBool("spotLights[1].isActive", isSpot1Active);
-		//
-		//lightShader.setVec3("spotLights[1].position", spotLight1Position);
-		//lightShader.setVec3("spotLights[1].direction", spotLight1Direction);
-		//lightShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
-		//lightShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
-		//lightShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
-		//
-		//lightShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
-		//lightShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
-		//lightShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
-		//
-		//lightShader.setFloat("spotLights[1].cutOff", spotLight1CutOff);
-		//lightShader.setFloat("spotLights[1].outerCutOff", spotLight1OuterCutOff);
-		//
+		lightShader.setBool("spotLights[1].isActive", isSpot1Active);
+
+		lightShader.setVec3("spotLights[1].position", spotLight1Position);
+		lightShader.setVec3("spotLights[1].direction", spotLight1Direction);
+		lightShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
+		lightShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
+		lightShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
+
+		lightShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
+		lightShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
+		lightShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
+
+		lightShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
+		lightShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
+
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
 		pointLight.transform->setLocalPosition(pointLightPosition);
 		spotLightGizmo.transform->setLocalPosition(spotLightPosition);
-		//spotLightGizmo.transform->setLocalRotation(-360.0f * spotLightDirection);
-		//spotLightGizmo.transform->setModelMatrix(glm::inverse(glm::lookAt(spotLightPosition,spotLightPosition + spotLightDirection,
-		//	glm::vec3(0.0f,1.0f,0.0f))));
-		spotLightGizmo.Draw();
+		spotLightGizmo.transform->setLocalRotation(spotLightDirection);
+		//spotLightGizmo.transform->setModelMatrix(glm::inverse(glm::lookAt(spotLightPosition, spotLightPosition + spotLightDirection, glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::mat4(1.0f), gizmoScale));
+		
+			
+		spotLight1Gizmo.transform->setLocalPosition(spotLight1Position);
+		spotLight1Gizmo.transform->setLocalRotation(spotLight1Direction);
 
-
-		cube.transform->setLocalPosition({0,0,0});
+		cube.transform->setLocalPosition({ 0,0,0 });
 
 		cube.Update();
 
 		pointLight.Draw();
+		spotLightGizmo.Draw();
+		spotLight1Gizmo.Draw();
 
 		lightShader.use();
 		roof.Draw();
 		cube.Draw();
+
+
+
 		// Rendering
 		ImGui::Render();
 

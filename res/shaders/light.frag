@@ -1,7 +1,7 @@
 #version 430 core
 
 #define NR_POINT_LIGHTS 1
-#define NR_SPOT_LIGHTS 1
+#define NR_SPOT_LIGHTS 2
 
 out vec4 FragColor;
 
@@ -100,7 +100,7 @@ void main()
     if(dirLight.isActive)
         result += CalcDirLight(dirLight, norm, viewDir);
 
-
+ 
     FragColor = vec4(result, 1.0);
 } 
 
