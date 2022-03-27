@@ -17,6 +17,7 @@ protected:
 
 	Shader* shader = nullptr;
 
+
 public:
 
 	Object* parent = nullptr;
@@ -24,9 +25,28 @@ public:
 	Transform* transform = nullptr;
 
 	Object(const std::string& modelPath, Shader* objShader);
+
+	Object() = default;
+
 	virtual void Update();
+
 	void AddChild(Object* child);
-	void Draw();
+
+	virtual void Draw();
+};
+
+class InstancedObject : public Object
+{
+	glm::mat4* instanceMatrices = nullptr;
+	unsigned int amount = 1;
+public:
+	InstancedObject(const std::string& modelPath, Shader* objShader, glm::mat4* instanceMatrices, unsigned int instanceAmount);
+
+	void Update() override;
+
+	void Draw() override;
+
+	
 };
 
 #endif

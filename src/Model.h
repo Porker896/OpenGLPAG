@@ -25,11 +25,13 @@ public:
     bool gammaCorrection;
 
     // constructor, expects a filepath to a 3D model.
-    Model(std::string const &path, bool gamma = false);
+    Model(std::string const &path, bool gamma = false, const glm::mat4* instanceMatrices = nullptr, const unsigned amount = 1);
 
     // draws the model, and thus all its meshes
     void Draw(Shader &shader);
-    
+
+    void DrawInstanced(Shader& shader, const unsigned int amount);
+
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     void loadModel(std::string const &path);

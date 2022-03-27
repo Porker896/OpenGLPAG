@@ -46,16 +46,21 @@ public:
     unsigned int VAO;
 
     // constructor
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, const glm::mat4* instanceMatrices = nullptr,
+        const unsigned instanceCount = 1);
     // render the mesh
-    void Draw(const Shader &shader) ;
+    void Draw(const Shader &shader);
+
+    void DrawInstanced(Shader& shader, const unsigned int amount);
 
 private:
     // render data 
     unsigned int VBO, EBO;
 
     // initializes all the buffer objects/arrays
-    void setupMesh();
+    void setupMesh(const glm::mat4* instanceMatrices = nullptr, const unsigned int amount = 1);
+
+    void setupInstancedMesh(const glm::mat4* instanceMatrices, const unsigned int amount);
    
 };
 #endif

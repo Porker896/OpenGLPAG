@@ -196,8 +196,29 @@ int main(int, char**)
 	float spotLight1CutOff = 12.5f;
 	float spotLight1OuterCutOff = 17.5f;
 
-	Object cube("res/models/cube/cube.obj", &lightShader);
-	Object roof("res/models/pyramid/pyramid.obj", &lightShader);
+	//instanced matrices preparation
+	int rows = 1000, columns = 1000;
+	int amount = rows * columns;
+	auto instanceMatrices = new glm::mat4[amount];
+	auto roofInstanceMatrices = new glm::mat4[amount];
+	glm::mat4 temp(1.0f);
+	for (auto i = 0; i < columns; i++)
+	{
+		glm::mat4 model(1.0f);
+		for (auto j = 0; j < rows; j++)
+		{
+			temp = glm::translate(temp, glm::vec3(3.0f, 0.0f, 0.0f));
+			model = temp;
+
+			instanceMatrices[i * columns + j] = model;
+			roofInstanceMatrices[i * columns + j] = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
+		}
+		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * 3.0f, 0.0f, 3.0f));
+	}
+
+
+	InstancedObject cube("res/models/cube/cube.obj", &lightShader, instanceMatrices, amount);
+	InstancedObject roof("res/models/pyramid/pyramid.obj", &lightShader, roofInstanceMatrices, amount);
 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
@@ -362,8 +383,8 @@ int main(int, char**)
 		spotLightGizmo.transform->setLocalPosition(spotLightPosition);
 		spotLightGizmo.transform->setLocalRotation(spotLightDirection);
 		//spotLightGizmo.transform->setModelMatrix(glm::inverse(glm::lookAt(spotLightPosition, spotLightPosition + spotLightDirection, glm::vec3(0.0f, 1.0f, 0.0f))) * glm::scale(glm::mat4(1.0f), gizmoScale));
-		
-			
+
+
 		spotLight1Gizmo.transform->setLocalPosition(spotLight1Position);
 		spotLight1Gizmo.transform->setLocalRotation(spotLight1Direction);
 
@@ -398,6 +419,9 @@ int main(int, char**)
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+
+	delete[] instanceMatrices;
+	delete[] roofInstanceMatrices;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

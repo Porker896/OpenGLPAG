@@ -19,7 +19,7 @@ using namespace std;
 
 
 // constructor, expects a filepath to a 3D model.
-Model::Model(string const& path, bool gamma) : gammaCorrection(gamma)
+Model::Model(string const& path, bool gamma, const glm::mat4* instanceMatrices, const unsigned amount) : gammaCorrection(gamma)
 {
 	loadModel(path);
 }
@@ -29,6 +29,14 @@ void Model::Draw(Shader& shader)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 		meshes[i].Draw(shader);
+}
+
+void Model::DrawInstanced(Shader& shader, const unsigned int amount)
+{
+	for(auto& mesh: meshes)
+	{
+		mesh.DrawInstanced(shader, amount);
+	}
 }
 
 // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
@@ -150,7 +158,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
 	// return a mesh object created from the extracted mesh data
-	return Mesh(vertices, indices, textures);
+	return{vertices, indices, textures};
 }
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
