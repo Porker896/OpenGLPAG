@@ -37,9 +37,17 @@ void Object::Update()
 
 void Object::Draw()
 {
-	shader->use();
-	shader->setMat4("model", transform->getLocalModelMatrix());
-	model->Draw(*shader);
+	if (model != nullptr)
+	{
+		shader->use();
+		shader->setMat4("model", transform->getLocalModelMatrix());
+		model->Draw(*shader);
+	}
+	
+	for(auto& child : children)
+	{
+		child->Draw();
+	}
 }
 
 InstancedObject::InstancedObject(const std::string& modelPath, Shader* objShader, glm::mat4* instanceMatrices,
@@ -85,5 +93,12 @@ void InstancedObject::Update()
 
 void InstancedObject::Draw()
 {
+	shader->use();
+
 	model->DrawInstanced(*shader, amount);
+
+	for(auto& child : children)
+	{
+		child->Draw();
+	}
 }

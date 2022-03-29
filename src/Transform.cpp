@@ -83,7 +83,7 @@ const glm::mat4& Transform::getLocalModelMatrix() const
 	return modelMatrix;
 }
 
-bool Transform::isDirty()
+bool Transform::isDirty() const
 {
 	return dirty;
 }

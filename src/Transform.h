@@ -32,7 +32,7 @@ public:
 
 	const glm::mat4& getLocalModelMatrix() const;
 
-	bool isDirty();
+	bool isDirty() const;
 
 
 };
