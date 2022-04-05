@@ -16,7 +16,7 @@ Mesh::Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture
 	setupMesh(instanceMatrices, amount);
 }
 // render the mesh
-void Mesh::Draw(const Shader& shader)
+void Mesh::Draw( Shader& shader) const
 {
 	// bind appropriate textures
 	unsigned int diffuseNr = 1;
@@ -24,25 +24,26 @@ void Mesh::Draw(const Shader& shader)
 	unsigned int normalNr = 1;
 	unsigned int heightNr = 1;
 
-	for (unsigned int i = 0; i < textures.size(); i++)
+	shader.use();
+	int i =0;
+	for (const auto& texture : textures)
 	{
 		glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
 		// retrieve texture number (the N in diffuse_textureN)
 		string number;
-		string name = textures[i].type;
+		string name = texture.type;
 		if (name == "texture_diffuse")
 			number = std::to_string(diffuseNr++);
 		else if (name == "texture_specular")
 			number = std::to_string(specularNr++); // transfer unsigned int to string
 		else if (name == "texture_normal")
 			number = std::to_string(normalNr++); // transfer unsigned int to string
-		else if (name == "texture_height")
-			number = std::to_string(heightNr++); // transfer unsigned int to string
-
+	
 		// now set the sampler to the correct texture unit
 		glUniform1i(glGetUniformLocation(shader.ID, (name + number).c_str()), i);
 		// and finally bind the texture
-		glBindTexture(GL_TEXTURE_2D, textures[i].id);
+		glBindTexture(GL_TEXTURE_2D, texture.id);
+		i++;
 	}
 
 	// draw mesh
@@ -54,7 +55,7 @@ void Mesh::Draw(const Shader& shader)
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh::DrawInstanced(Shader& shader, const unsigned int amount)
+void Mesh::DrawInstanced(Shader& shader, const unsigned int amount) const
 {
 	// bind appropriate textures
 	unsigned int diffuseNr = 1;
@@ -83,9 +84,10 @@ void Mesh::DrawInstanced(Shader& shader, const unsigned int amount)
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 
+
 	// draw mesh
 	glBindVertexArray(VAO);
-	glDrawElementsInstanced(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, 0, amount);
+	glDrawElementsInstanced(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, nullptr, amount);
 	glBindVertexArray(0);
 
 	// always good practice to set everything back to defaults once configured.
@@ -129,19 +131,7 @@ void Mesh::setupMesh(const glm::mat4* instanceMatrices, const unsigned amount)
 		// vertex texture coords
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-		// vertex tangent
-		glEnableVertexAttribArray(3);
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
-		// vertex bitangent
-		glEnableVertexAttribArray(4);
-		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
-		// ids
-		glEnableVertexAttribArray(5);
-		glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, m_BoneIDs));
 
-		// weights
-		glEnableVertexAttribArray(6);
-		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, m_Weights));
 		glBindVertexArray(0);
 	}
 }
@@ -174,13 +164,9 @@ void Mesh::setupInstancedMesh(const glm::mat4* instanceMatrices, const unsigned 
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
-	glBindVertexArray(VAO);
-
-	unsigned int matrixBuffer = 0;
-
-	glGenBuffers(1, &matrixBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, matrixBuffer);
-	glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &instanceMatrices[0], GL_STATIC_DRAW);
+	glGenBuffers(1, &instanceMatricesBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceMatricesBuffer);
+	glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), instanceMatrices, GL_DYNAMIC_DRAW);
 
 	// vertex attributes
 	const std::size_t vec4Size = sizeof(glm::vec4);

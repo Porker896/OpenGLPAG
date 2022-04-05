@@ -2,40 +2,45 @@
 #ifndef TRANSFORM_H
 #define TRANSFORM_H
 
+#include <vector>
 #include <glm/glm.hpp>
 
 class Transform
 {
-	glm::vec3 pos = {0,0,0};
-	glm::vec3 eulerRot = {0,0,0};
-	glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+	bool dirty = true;
+
+	glm::vec3 pos = { 0,0,0 };
+	glm::vec3 eulerRot = { 0,0,0 };
+	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
 
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 
-	bool dirty = true;
 
 public:
 	Transform();
+	Transform(const glm::mat4& model);
 
-	void computeModelMatrix();
-	void computeModelMatrix(const glm::mat4& parentGlobalMatrix);
-	void setLocalRotation(const glm::vec3& newRotation);
+	void ComputeModelMatrix();
+	void ComputeModelMatrix(const glm::mat4& parentGlobalMatrix);
 
-	void setLocalPosition(const glm::vec3& newPosition);
-	void setLocalRotationX(const float newX);
-	void setLocalRotationY(const float newY);
-	void setLocalRotationZ(const float newZ);
-	void setModelMatrix(const glm::mat4& newModel);
-	void setLocalScale(const glm::vec3& newScale);
+	void SetLocalRotation(const glm::vec3& newRotation);
+	void SetLocalPosition(const glm::vec3& newPosition);
+	void SetLocalRotationX(const float newX);
+	void SetLocalRotationY(const float newY);
+	void SetLocalRotationZ(const float newZ);
+	void SetLocalScale(const glm::vec3& newScale);
+	void SetModelMatrix(const glm::mat4& newModel);
 
-	const glm::vec3& getLocalPosition() const;
+	const glm::vec3& GetLocalPosition() const;
 
-	const glm::mat4& getLocalModelMatrix() const;
+	const glm::mat4& GetModelMatrix() const;
 
 	bool isDirty() const;
 
 
 };
+
+
 
 
 #endif

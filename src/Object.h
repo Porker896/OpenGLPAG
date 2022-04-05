@@ -5,13 +5,14 @@
 
 #include "Model.h"
 #include "Transform.h"
-#include <list>
 
 class Object
 {
 protected:
 
-	std::list<Object*> children;
+	bool instanced = false;
+
+	std::vector<Object*> children;
 
 	Model* model = nullptr;
 
@@ -26,27 +27,45 @@ public:
 
 	Object(const std::string& modelPath, Shader* objShader);
 
-	Object() = default;
+	Object();
 
-	virtual void Update();
+	Object(Model* loadedModel, Shader* objShader);
+
+	void SetModel(Model* newModel);
+
+	void SetShader(Shader* newShader);
+
+	void SetTransform(Transform* newTransform); 
 
 	void AddChild(Object* child);
+
+	virtual void Update();
 
 	virtual void Draw();
 };
 
 class InstancedObject : public Object
 {
-	glm::mat4* instanceMatrices = nullptr;
-	unsigned int amount = 1;
+	unsigned int instanceMatBuffer = 0;
+
+	std::vector<Transform> instanceTransforms;
+
+	void PrepareInstanceMatricesBuffer();
+
+	void UpdateInstanceMatricesBuffer();
+
 public:
-	InstancedObject(const std::string& modelPath, Shader* objShader, glm::mat4* instanceMatrices, unsigned int instanceAmount);
+	InstancedObject();
+
+	InstancedObject(Model* objModel, Shader* objShader, const std::vector<Transform>& objInstanceTransforms);
 
 	void Update() override;
 
 	void Draw() override;
 
-	
+	void AddInstanceTransform(const Transform& transform);
+
+
 };
 
 #endif

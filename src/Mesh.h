@@ -22,13 +22,6 @@ struct Vertex {
     // texCoords
     glm::vec2 TexCoords;
     // tangent
-    glm::vec3 Tangent;
-    // bitangent
-    glm::vec3 Bitangent;
-	//bone indexes which will influence this vertex
-	int m_BoneIDs[MAX_BONE_INFLUENCE];
-	//weights from each bone
-	float m_Weights[MAX_BONE_INFLUENCE];
 };
 
 struct Texture {
@@ -44,14 +37,15 @@ public:
     std::vector<unsigned int> indices;
     std::vector<Texture>      textures;
     unsigned int VAO;
+	unsigned int instanceMatricesBuffer = 0;
 
     // constructor
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, const glm::mat4* instanceMatrices = nullptr,
         const unsigned instanceCount = 1);
     // render the mesh
-    void Draw(const Shader &shader);
+    void Draw(Shader &shader) const;
 
-    void DrawInstanced(Shader& shader, const unsigned int amount);
+    void DrawInstanced(Shader& shader, const unsigned int amount) const;
 
 private:
     // render data 

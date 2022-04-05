@@ -3,10 +3,23 @@
 #include "glm/trigonometric.hpp"
 #include "glm/ext/matrix_transform.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/matrix_decompose.hpp"
+
 Transform::Transform() = default;
 
+Transform::Transform(const glm::mat4 & model) :  modelMatrix(model)
+{
+	glm::quat rot;
+	glm::vec4 perspective;
+	glm::vec3 skew;
+	glm::decompose(model, scale, rot, pos, skew, perspective);
+	eulerRot = glm::eulerAngles(rot);
 
-void Transform::computeModelMatrix()
+}
+
+
+void Transform::ComputeModelMatrix()
 {
 	const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f),
 		glm::radians(eulerRot.x),
@@ -25,60 +38,66 @@ void Transform::computeModelMatrix()
 	dirty = false;
 }
 
-void Transform::computeModelMatrix(const glm::mat4& parentGlobalMatrix)
+void Transform::ComputeModelMatrix(const glm::mat4 & parentGlobalMatrix)
 {
-	computeModelMatrix();
+	ComputeModelMatrix();
 	modelMatrix = parentGlobalMatrix * modelMatrix;
 }
 
-void Transform::setLocalRotation(const glm::vec3 & newRotation)
+void Transform::SetLocalRotation(const glm::vec3 & newRotation)
 {
 	eulerRot = newRotation;
 	dirty = true;
 }
 
-void Transform::setLocalPosition(const glm::vec3 & newPosition)
+void Transform::SetLocalPosition(const glm::vec3 & newPosition)
 {
 	pos = newPosition;
 	dirty = true;
 }
 
-void Transform::setLocalRotationX(const float newX)
+void Transform::SetLocalRotationX(const float newX)
 {
 	pos.x = newX;
 	dirty = true;
 }
 
-void Transform::setLocalRotationY(const float newY)
+void Transform::SetLocalRotationY(const float newY)
 {
 	pos.y = newY;
 	dirty = true;
 }
 
-void Transform::setLocalRotationZ(const float newZ)
+void Transform::SetLocalRotationZ(const float newZ)
 {
 	pos.z = newZ;
 	dirty = true;
 }
 
-void Transform::setModelMatrix(const glm::mat4& newModel)
+void Transform::SetModelMatrix(const glm::mat4 & newModel)
 {
 	modelMatrix = newModel;
-	dirty= true;
+	glm::quat rot;
+	glm::vec4 perspective;
+	glm::vec3 skew;
+
+	glm::decompose(modelMatrix, scale, rot, pos, skew, perspective);
+	eulerRot = glm::eulerAngles(rot);
+	dirty = true;
 }
 
-void Transform::setLocalScale(const glm::vec3 & newScale)
+void Transform::SetLocalScale(const glm::vec3 & newScale)
 {
 	scale = newScale;
 	dirty = true;
 }
 
-const glm::vec3& Transform::getLocalPosition() const
+const glm::vec3& Transform::GetLocalPosition() const
 {
 	return pos;
 }
 
-const glm::mat4& Transform::getLocalModelMatrix() const
+const glm::mat4& Transform::GetModelMatrix() const
 {
 	return modelMatrix;
 }

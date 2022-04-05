@@ -10,10 +10,17 @@ out vec3 Normal;
 out vec2 TexCoords;
 
 uniform mat4 VP;
+uniform vec3 offset;
+uniform int chosenInstance;
 
 void main()
 {
-    FragPos = vec3(instanceMatrix* vec4(aPos, 1.0));
+    vec3 pos = aPos;
+    if(gl_InstanceID  == chosenInstance)
+    {
+       pos = aPos + offset;       
+    }
+    FragPos = vec3(instanceMatrix * vec4(pos, 1.0));
     Normal = mat3(transpose(inverse(instanceMatrix))) * aNormal;  
     TexCoords = aTexCoords;
     

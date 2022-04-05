@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
 #include <cstdio>
 
 #include <glad/glad.h>  // Initialize with gladLoadGL()
@@ -118,7 +119,7 @@ int main(int, char**)
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSwapInterval(0); // Enable vsync
+	glfwSwapInterval(1); // Enable vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
@@ -146,7 +147,6 @@ int main(int, char**)
 
 	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
 	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
-
 
 
 	float deltaTime = 0;
@@ -199,45 +199,67 @@ int main(int, char**)
 	//instanced matrices preparation
 	int rows = 200, columns = 200;
 	int amount = rows * columns;
-	auto instanceMatrices = new glm::mat4[amount];
-	auto roofInstanceMatrices = new glm::mat4[amount];
+
+	std::vector<Transform> houseTransforms;
+	std::vector<Transform> roofTransforms;
+
+	auto cubeModel = new Model("res/models/cube/cube.obj");
+	auto pyramidModel = new Model("res/models/pyramid/pyramid.obj");
+
+	auto root = new Object();
+
+	auto houses = new Object();
+	//root->AddChild(houses);
+
+
 	glm::mat4 temp(1.0f);
+
 	for (auto i = 0; i < columns; i++)
 	{
 		glm::mat4 model(1.0f);
 		for (auto j = 0; j < rows; j++)
 		{
+			auto houseTransform = Transform();
+			auto roofTransform = Transform();
+
 			temp = glm::translate(temp, glm::vec3(3.0f, 0.0f, 0.0f));
 			model = temp;
 
-			instanceMatrices[i * columns + j] = model;
-			roofInstanceMatrices[i * columns + j] = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
+			houseTransform.SetModelMatrix(model);
+			houseTransforms.emplace_back(houseTransform);
+
+			roofTransform.SetLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+			roofTransform.ComputeModelMatrix(houseTransform.GetModelMatrix());
+			roofTransforms.emplace_back(roofTransform);
 		}
 		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * 3.0f, 0.0f, 3.0f));
 	}
 
-	Object root("res/models/cube/cube.obj", &lightShader);
+	auto house = new InstancedObject(cubeModel, &lightShader, houseTransforms);
+	auto roof = new InstancedObject(pyramidModel, &lightShader, roofTransforms);
 
-	InstancedObject cube("res/models/cube/cube.obj", &lightShader, instanceMatrices, amount);
-	InstancedObject roof("res/models/pyramid/pyramid.obj", &lightShader, roofInstanceMatrices, amount);
-	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
+	house->AddChild(roof);
+	houses->AddChild(house);
+
+ 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
 
-
-	cube.AddChild(&roof);
-	cube.AddChild(&pointLight);
-	cube.AddChild(&spotLightGizmo);
-	cube.AddChild(&spotLight1Gizmo);
-
 	const auto gizmoScale = glm::vec3(0.2f);
-	spotLightGizmo.transform->setLocalScale(gizmoScale);
-	spotLight1Gizmo.transform->setLocalScale(gizmoScale);
-	pointLight.transform->setLocalScale(gizmoScale);
-	roof.transform->setLocalPosition({ 0,2.0f,0 });
+	spotLightGizmo.transform->SetLocalScale(gizmoScale);
+	spotLight1Gizmo.transform->SetLocalScale(gizmoScale);
+	pointLight.transform->SetLocalScale(gizmoScale);
 
-	cube.Update();
 
+	houses->AddChild(&spotLightGizmo);
+	houses->AddChild(&spotLight1Gizmo);
+	houses->AddChild(&pointLight);
+
+	houses->Update();
+
+	int chosenBuilding = 0;
+
+	glm::vec3 buildingLocalPos(0.0f);
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
@@ -248,7 +270,6 @@ int main(int, char**)
 
 		glfwPollEvents();
 		processInput(window, deltaTime);
-
 
 		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -261,6 +282,9 @@ int main(int, char**)
 		//UI
 		{
 			ImGui::Begin("Inspector");
+
+			ImGui::InputInt("Chosen building", &chosenBuilding);
+			ImGui::SliderFloat3("Building local pos", glm::value_ptr(buildingLocalPos), -10.0f, 10.0f);
 
 			ImGui::Text("Material");
 			ImGui::SliderFloat("Shininess", &shininess, 0.0f, 256.0f);
@@ -323,6 +347,8 @@ int main(int, char**)
 		lightShader.setVec3("viewPos", camera.Position);
 
 		lightShader.setFloat("shininess", shininess);
+		lightShader.setVec3("offset", buildingLocalPos);
+		lightShader.setInt("chosenInstance", chosenBuilding);
 
 		lightShader.setBool("dirLight.isActive", isDirLight);
 		lightShader.setVec3("dirLight.direction", direction);
@@ -375,33 +401,21 @@ int main(int, char**)
 		lightShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
 		lightShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
 
+
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
-		pointLight.transform->setLocalPosition(pointLightPosition);
-		spotLightGizmo.transform->setLocalPosition(spotLightPosition);
-		spotLightGizmo.transform->setLocalRotation(spotLightDirection);
-		//spotLightGizmo.transform->setModelMatrix(glm::inverse(glm::lookAt(spotLightPosition,
-		//spotLightPosition + spotLightDirection, glm::vec3(0.0f, 1.0f, 0.0f))) *
-		//glm::scale(glm::mat4(1.0f), gizmoScale));
+		pointLight.transform->SetLocalPosition(pointLightPosition);
+		spotLightGizmo.transform->SetLocalPosition(spotLightPosition);
+		spotLightGizmo.transform->SetLocalRotation(spotLightDirection);
 
-		spotLight1Gizmo.transform->setLocalPosition(spotLight1Position);
-		spotLight1Gizmo.transform->setLocalRotation(spotLight1Direction);
+		spotLight1Gizmo.transform->SetLocalPosition(spotLight1Position);
+		spotLight1Gizmo.transform->SetLocalRotation(spotLight1Direction);
 
-		cube.transform->setLocalPosition({ 0,0,0 });
-
-		cube.Update();
-		lightShader.use();
-		 cube.Draw();
-		//pointLight.Draw();
-		//spotLightGizmo.Draw();
-		//spotLight1Gizmo.Draw();
-
-		//roof.Draw();
-		//cube.Draw();
-
-
+		houses->transform->SetLocalPosition({0,0,0});
+		houses->Update();
+		houses->Draw();
 
 		// Rendering
 		ImGui::Render();
@@ -421,8 +435,7 @@ int main(int, char**)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	delete[] instanceMatrices;
-	delete[] roofInstanceMatrices;
+	delete houses;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
