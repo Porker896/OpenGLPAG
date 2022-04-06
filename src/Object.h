@@ -31,6 +31,8 @@ public:
 
 	Object(Model* loadedModel, Shader* objShader);
 
+	virtual ~Object() = default;
+
 	void SetModel(Model* newModel);
 
 	void SetShader(Shader* newShader);
@@ -56,6 +58,8 @@ class InstancedObject : public Object
 
 public:
 	InstancedObject();
+
+	~InstancedObject() override = default;
 
 	InstancedObject(Model* objModel, Shader* objShader, const std::vector<Transform>& objInstanceTransforms);
 

@@ -83,7 +83,6 @@ InstancedObject::InstancedObject() : Object()
 }
 
 
-
 InstancedObject::InstancedObject(Model* objModel, Shader* objShader, const std::vector<Transform>& objInstanceTransforms) :
 	Object(objModel, objShader), instanceTransforms(objInstanceTransforms)
 {

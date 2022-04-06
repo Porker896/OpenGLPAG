@@ -155,9 +155,9 @@ int main(int, char**)
 	float shininess = 2.0f;
 
 	//DIR LIGHT PROPERTIES
-	bool isDirLight = false;
+	bool isDirLight = true;
 	glm::vec3 direction(0, 0, 0);
-	glm::vec3 ambient(0);
+	glm::vec3 ambient(.19f);
 	glm::vec3 diffuse(0);
 	glm::vec3 specular(0);
 
@@ -205,12 +205,10 @@ int main(int, char**)
 
 	auto cubeModel = new Model("res/models/cube/cube.obj");
 	auto pyramidModel = new Model("res/models/pyramid/pyramid.obj");
+	auto plane = new Model("res/models/plane/plane.obj");
 
-	auto root = new Object();
 
-	auto houses = new Object();
-	//root->AddChild(houses);
-
+	auto houses = new Object(plane, &lightShader);
 
 	glm::mat4 temp(1.0f);
 
@@ -249,7 +247,6 @@ int main(int, char**)
 	spotLightGizmo.transform->SetLocalScale(gizmoScale);
 	spotLight1Gizmo.transform->SetLocalScale(gizmoScale);
 	pointLight.transform->SetLocalScale(gizmoScale);
-
 
 	houses->AddChild(&spotLightGizmo);
 	houses->AddChild(&spotLight1Gizmo);
