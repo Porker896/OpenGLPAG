@@ -2,19 +2,17 @@
 
 #include "glm/gtc/type_ptr.hpp"
 
-Object::Object(const std::string& modelPath, Shader* objShader) : model(new Model(modelPath)), shader(objShader), transform(new Transform())
+Object::Object(const std::string& modelPath, Shader* objShader) : model(new Model(modelPath)), shader(objShader)
 {
 
 }
 
-Object::Object(Model* loadedModel, Shader* objShader) : model(loadedModel), shader(objShader), transform(new Transform())
-{
-}
-
-Object::Object() : transform(new Transform())
+Object::Object(Model* loadedModel, Shader* objShader) : model(loadedModel), shader(objShader)
 {
 
 }
+
+Object::Object(){};
 
 void Object::SetModel(Model* newModel)
 {
@@ -26,40 +24,10 @@ void Object::SetShader(Shader* newShader)
 	shader = newShader;
 }
 
-void Object::SetTransform(Transform* newTransform)
-{
-	transform = newTransform;
-}
-
-
-void Object::AddChild(Object* child)
-{
-	child->parent = this;
-	children.emplace_back(child);
-}
 
 void Object::Update()
 {
 
-	if (!transform->isDirty())
-	{
-		return;
-	}
-
-	if (parent != nullptr)
-	{
-		transform->ComputeModelMatrix(parent->transform->GetModelMatrix());
-	}
-	else
-	{
-		transform->ComputeModelMatrix();
-	}
-
-	if (!children.empty())
-	{
-		for (auto& child : children)
-			child->Update();
-	}
 }
 
 void Object::Draw()
@@ -67,14 +35,10 @@ void Object::Draw()
 	if (model != nullptr)
 	{
 		shader->use();
-		shader->setMat4("model", transform->GetModelMatrix());
+		shader->setMat4("model", transform.GetModelMatrix());
 		model->Draw(*shader);
 	}
 
-	for (const auto& child : children)
-	{
-		child->Draw();
-	}
 }
 
 InstancedObject::InstancedObject() : Object()
@@ -83,14 +47,28 @@ InstancedObject::InstancedObject() : Object()
 }
 
 
-InstancedObject::InstancedObject(Model* objModel, Shader* objShader, const std::vector<Transform>& objInstanceTransforms) :
-	Object(objModel, objShader), instanceTransforms(objInstanceTransforms)
+InstancedObject::InstancedObject(Model* objModel, Shader* objShader, std::vector<Transform*> objInstanceTransforms) :
+	Object(objModel, objShader), instanceTransforms(std::move(objInstanceTransforms))
 {
 	PrepareInstanceMatricesBuffer();
 
 }
 
+void InstancedObject::Update()
+{
+	Object::Update();
+}
 
+void InstancedObject::Draw()
+{
+	UpdateInstanceMatricesBuffer();
+
+	if(model != nullptr)
+	{
+		shader->use();
+		model->DrawInstanced(*shader, instanceTransforms.size());
+	}
+}
 
 void InstancedObject::PrepareInstanceMatricesBuffer()
 {
@@ -98,15 +76,16 @@ void InstancedObject::PrepareInstanceMatricesBuffer()
 
 	std::vector<glm::mat4> instanceMatrices;
 	for (const auto& transform : instanceTransforms)
-		instanceMatrices.emplace_back(transform.GetModelMatrix());
+		instanceMatrices.emplace_back(transform->GetModelMatrix());
 
- 	glBindBuffer(GL_ARRAY_BUFFER, instanceMatBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceMatBuffer);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<int>(instanceMatrices.size()) * sizeof(glm::mat4), instanceMatrices.data(), GL_DYNAMIC_DRAW);
 
-	constexpr std::size_t vec4Size = sizeof(glm::vec4);
 
 	for (const auto& mesh : model->meshes)
 	{
+		constexpr std::size_t vec4Size = sizeof(glm::vec4);
+
 		glBindVertexArray(mesh.VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, instanceMatBuffer);
 
@@ -134,35 +113,10 @@ void InstancedObject::UpdateInstanceMatricesBuffer()
 {
 	std::vector<glm::mat4> instanceMatrices;
 	for (const auto& transform : instanceTransforms)
-		instanceMatrices.emplace_back(transform.GetModelMatrix());
+		instanceMatrices.emplace_back(transform->GetModelMatrix());
 
 	glBindBuffer(GL_ARRAY_BUFFER, instanceMatBuffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<int>(instanceMatrices.size()) * sizeof(glm::mat4), instanceMatrices.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void InstancedObject::Update()
-{
-	Object::Update();
-	UpdateInstanceMatricesBuffer();
-}
-
-void InstancedObject::Draw()
-{
-	if (model != nullptr)
-	{
-		shader->use();
-		shader->setMat4("model", transform->GetModelMatrix());
-		model->DrawInstanced(*shader, instanceTransforms.size());
-	}
-
-	for (const auto& child : children)
-	{
-		child->Draw();
-	}
-}
-
-void InstancedObject::AddInstanceTransform(const Transform& newTransform)
-{
-	instanceTransforms.emplace_back(newTransform);
-}

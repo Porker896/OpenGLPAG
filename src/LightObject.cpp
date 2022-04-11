@@ -79,7 +79,7 @@ LightObject::LightObject(const std::string& path, Shader* objShader) : Object(pa
 
 void LightObject::PassToShader() 
 {
-	pointLight.position = transform->GetLocalPosition();
+	pointLight.position = transform.GetLocalPosition();
 
 	spotLight.PassToShader(lightShader, id);
 	pointLight.PassToShader(lightShader, id);

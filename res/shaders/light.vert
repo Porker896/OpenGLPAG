@@ -16,10 +16,12 @@ uniform int chosenInstance;
 void main()
 {
     vec3 pos = aPos;
-    if(gl_InstanceID  == chosenInstance)
-    {
-       pos = aPos + offset;       
-    }
+
+    //if(gl_InstanceID  == chosenInstance)
+    //{
+     //  pos = aPos + offset;       
+    //}
+
     FragPos = vec3(instanceMatrix * vec4(pos, 1.0));
     Normal = mat3(transpose(inverse(instanceMatrix))) * aNormal;  
     TexCoords = aTexCoords;

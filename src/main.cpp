@@ -119,7 +119,7 @@ int main(int, char**)
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSwapInterval(1); // Enable vsync
+	glfwSwapInterval(0); // Enable vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
@@ -147,7 +147,7 @@ int main(int, char**)
 
 	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
 	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
-
+	Shader texturedShader("res/shaders/textured.vert", "res/shaders/light.frag");
 
 	float deltaTime = 0;
 	float lastFrame = 0;
@@ -200,34 +200,38 @@ int main(int, char**)
 	int rows = 200, columns = 200;
 	int amount = rows * columns;
 
-	std::vector<Transform> houseTransforms;
-	std::vector<Transform> roofTransforms;
+	std::vector<Transform*> houseTransforms;
+	std::vector<Transform*> roofTransforms;
 
 	auto cubeModel = new Model("res/models/cube/cube.obj");
 	auto pyramidModel = new Model("res/models/pyramid/pyramid.obj");
 	auto plane = new Model("res/models/plane/plane.obj");
 
 
-	auto houses = new Object(plane, &lightShader);
+	auto neighbourhood = new Object(plane, &texturedShader);
+
+	auto neighTransform = &neighbourhood->transform;// new Transform();
 
 	glm::mat4 temp(1.0f);
-
 	for (auto i = 0; i < columns; i++)
 	{
 		glm::mat4 model(1.0f);
 		for (auto j = 0; j < rows; j++)
 		{
-			auto houseTransform = Transform();
-			auto roofTransform = Transform();
+			auto houseTransform = new Transform();
+			auto roofTransform = new Transform();
 
 			temp = glm::translate(temp, glm::vec3(3.0f, 0.0f, 0.0f));
-			model = temp;
+			model = glm::translate(temp, { 0,1.5f,0 });
 
-			houseTransform.SetModelMatrix(model);
+			houseTransform->SetModelMatrix(model);
+			houseTransform->SetParent(neighTransform);
+
 			houseTransforms.emplace_back(houseTransform);
 
-			roofTransform.SetLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-			roofTransform.ComputeModelMatrix(houseTransform.GetModelMatrix());
+			roofTransform->SetLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+			roofTransform->SetParent(houseTransforms.back());
+
 			roofTransforms.emplace_back(roofTransform);
 		}
 		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * 3.0f, 0.0f, 3.0f));
@@ -236,29 +240,32 @@ int main(int, char**)
 	auto house = new InstancedObject(cubeModel, &lightShader, houseTransforms);
 	auto roof = new InstancedObject(pyramidModel, &lightShader, roofTransforms);
 
-	house->AddChild(roof);
-	houses->AddChild(house);
-
- 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
+	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
 
 	const auto gizmoScale = glm::vec3(0.2f);
-	spotLightGizmo.transform->SetLocalScale(gizmoScale);
-	spotLight1Gizmo.transform->SetLocalScale(gizmoScale);
-	pointLight.transform->SetLocalScale(gizmoScale);
+	spotLightGizmo.transform.SetLocalScale(gizmoScale);
+	spotLight1Gizmo.transform.SetLocalScale(gizmoScale);
+	pointLight.transform.SetLocalScale(gizmoScale);
+	//
+	spotLightGizmo.transform.SetParent(neighTransform);
+	spotLight1Gizmo.transform.SetParent(neighTransform);
+	pointLight.transform.SetParent(neighTransform);
 
-	houses->AddChild(&spotLightGizmo);
-	houses->AddChild(&spotLight1Gizmo);
-	houses->AddChild(&pointLight);
 
-	houses->Update();
+
+	neighbourhood->Update();
 
 	int chosenBuilding = 0;
 
 	glm::vec3 buildingLocalPos(0.0f);
+	glm::vec3 housesLocalPos(0.0f); //house.transform->GetLocalPosition();
+	glm::vec3 prevHousesLocalPos = housesLocalPos;
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	while (!glfwWindowShouldClose(window))
 	{
 		auto currentFrame = static_cast<float>(glfwGetTime());
@@ -282,6 +289,7 @@ int main(int, char**)
 
 			ImGui::InputInt("Chosen building", &chosenBuilding);
 			ImGui::SliderFloat3("Building local pos", glm::value_ptr(buildingLocalPos), -10.0f, 10.0f);
+			ImGui::InputFloat3("houses local pos", glm::value_ptr(housesLocalPos));
 
 			ImGui::Text("Material");
 			ImGui::SliderFloat("Shininess", &shininess, 0.0f, 256.0f);
@@ -337,7 +345,6 @@ int main(int, char**)
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
 		glm::mat4 VP = projection * camera.GetViewMatrix();
-
 
 		lightShader.use();
 		lightShader.setMat4("VP", VP);
@@ -399,20 +406,90 @@ int main(int, char**)
 		lightShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
 
 
+		texturedShader.use();
+		texturedShader.setMat4("VP", VP);
+		texturedShader.setVec3("viewPos", camera.Position);
+
+		texturedShader.setFloat("shininess", shininess);
+
+		texturedShader.setBool("dirLight.isActive", isDirLight);
+		texturedShader.setVec3("dirLight.direction", direction);
+		texturedShader.setVec3("dirLight.colors.ambient", ambient);
+		texturedShader.setVec3("dirLight.colors.diffuse", diffuse);
+		texturedShader.setVec3("dirLight.colors.specular", specular);
+
+		//POINT LIGHT
+		texturedShader.setBool("pointLights[0].isActive", isPointLight);
+
+		texturedShader.setVec3("pointLights[0].position", pointLightPosition);
+		texturedShader.setFloat("pointLights[0].att.constant", pointLightConstant);
+		texturedShader.setFloat("pointLights[0].att.linear", pointLightLinear);
+		texturedShader.setFloat("pointLights[0].att.quadratic", pointLightQuadratic);
+
+		texturedShader.setVec3("pointLights[0].colors.ambient", pointLightAmbient);
+		texturedShader.setVec3("pointLights[0].colors.diffuse", pointLightDiffuse);
+		texturedShader.setVec3("pointLights[0].colors.specular", pointLightSpecular);
+
+		//SPOT LIGHT 
+		texturedShader.setBool("spotLights[0].isActive", isSpotActive);
+
+		texturedShader.setVec3("spotLights[0].position", spotLightPosition);
+		texturedShader.setVec3("spotLights[0].direction", spotLightDirection);
+
+		texturedShader.setFloat("spotLights[0].att.constant", spotLightConstant);
+		texturedShader.setFloat("spotLights[0].att.linear", spotLightLinear);
+		texturedShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
+
+		texturedShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
+		texturedShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
+		texturedShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
+
+		texturedShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
+		texturedShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
+
+		//SPOT LIGHT 
+		texturedShader.setBool("spotLights[1].isActive", isSpot1Active);
+
+		texturedShader.setVec3("spotLights[1].position", spotLight1Position);
+		texturedShader.setVec3("spotLights[1].direction", spotLight1Direction);
+		texturedShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
+		texturedShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
+		texturedShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
+
+		texturedShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
+		texturedShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
+		texturedShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
+
+		texturedShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
+		texturedShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
+
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
-		pointLight.transform->SetLocalPosition(pointLightPosition);
-		spotLightGizmo.transform->SetLocalPosition(spotLightPosition);
-		spotLightGizmo.transform->SetLocalRotation(spotLightDirection);
 
-		spotLight1Gizmo.transform->SetLocalPosition(spotLight1Position);
-		spotLight1Gizmo.transform->SetLocalRotation(spotLight1Direction);
+		pointLight.transform.SetLocalPosition(pointLightPosition);
+		spotLightGizmo.transform.SetLocalPosition(spotLightPosition);
+		spotLightGizmo.transform.SetLocalRotation(spotLightDirection);
 
-		houses->transform->SetLocalPosition({0,0,0});
-		houses->Update();
-		houses->Draw();
+		spotLight1Gizmo.transform.SetLocalPosition(spotLight1Position);
+		spotLight1Gizmo.transform.SetLocalRotation(spotLight1Direction);
+
+		house->instanceTransforms[chosenBuilding]->SetLocalPosition(buildingLocalPos);
+		//roof->instanceTransforms[chosenBuilding]->SetLocalPosition({0,2,0});
+		if (housesLocalPos != prevHousesLocalPos)
+		{
+			prevHousesLocalPos = housesLocalPos;
+			neighTransform->SetLocalPosition(housesLocalPos);
+		}
+		neighTransform->Update();
+
+		neighbourhood->Draw();
+		house->Draw();
+		roof->Draw();
+		pointLight.Draw();
+		spotLightGizmo.Draw();
+		spotLight1Gizmo.Draw();
 
 		// Rendering
 		ImGui::Render();
@@ -432,7 +509,7 @@ int main(int, char**)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	delete houses;
+	delete neighbourhood;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

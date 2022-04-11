@@ -68,7 +68,6 @@ uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLights[NR_SPOT_LIGHTS];
 
-
 //MATERIAL
 uniform sampler2D texture_diffuse1;
 uniform sampler2D texture_specular1;

@@ -8,7 +8,7 @@
 
 Transform::Transform() = default;
 
-Transform::Transform(const glm::mat4 & model) :  modelMatrix(model)
+Transform::Transform(const glm::mat4 & model) : modelMatrix(model)
 {
 	glm::quat rot;
 	glm::vec4 perspective;
@@ -18,6 +18,20 @@ Transform::Transform(const glm::mat4 & model) :  modelMatrix(model)
 
 }
 
+void Transform::Update(bool parentDirty)
+{
+	parentDirty |= dirty;
+	if (parentDirty)
+	{
+		ComputeModelMatrix();
+	}
+
+	for (const auto& child : children)
+	{
+		child->Update(parentDirty);
+	}
+
+}
 
 void Transform::ComputeModelMatrix()
 {
@@ -35,13 +49,28 @@ void Transform::ComputeModelMatrix()
 
 	modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
 
+	if(parent != nullptr)
+		modelMatrix = parent->GetModelMatrix() * modelMatrix;
+
 	dirty = false;
 }
 
 void Transform::ComputeModelMatrix(const glm::mat4 & parentGlobalMatrix)
 {
 	ComputeModelMatrix();
+
 	modelMatrix = parentGlobalMatrix * modelMatrix;
+}
+
+void Transform::SetParent(Transform * parent)
+{
+	this->parent = parent;
+	parent->AddChild(this);
+}
+
+void Transform::AddChild(Transform * child)
+{
+	children.emplace_back(child);
 }
 
 void Transform::SetLocalRotation(const glm::vec3 & newRotation)
@@ -92,9 +121,20 @@ void Transform::SetLocalScale(const glm::vec3 & newScale)
 	dirty = true;
 }
 
+
 const glm::vec3& Transform::GetLocalPosition() const
 {
 	return pos;
+}
+
+const glm::vec3& Transform::GetLocalRotation() const
+{
+	return eulerRot;
+}
+
+const glm::vec3& Transform::GetLocalScale() const
+{
+	return scale;
 }
 
 const glm::mat4& Transform::GetModelMatrix() const
