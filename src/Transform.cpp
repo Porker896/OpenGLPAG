@@ -87,19 +87,19 @@ void Transform::SetLocalPosition(const glm::vec3 & newPosition)
 
 void Transform::SetLocalRotationX(const float newX)
 {
-	pos.x = newX;
+	eulerRot.x = newX;
 	dirty = true;
 }
 
 void Transform::SetLocalRotationY(const float newY)
 {
-	pos.y = newY;
+	eulerRot.y = newY;
 	dirty = true;
 }
 
 void Transform::SetLocalRotationZ(const float newZ)
 {
-	pos.z = newZ;
+	eulerRot.z = newZ;
 	dirty = true;
 }
 

@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Camera.h"
-#include "LightObject.h"
+#include "Object.h"
 
 float lastX = 1280.0f / 2.0f;
 float lastY = 720.0f / 2.0f;
@@ -248,18 +248,17 @@ int main(int, char**)
 	spotLightGizmo.transform.SetLocalScale(gizmoScale);
 	spotLight1Gizmo.transform.SetLocalScale(gizmoScale);
 	pointLight.transform.SetLocalScale(gizmoScale);
-	//
+	
 	spotLightGizmo.transform.SetParent(neighTransform);
 	spotLight1Gizmo.transform.SetParent(neighTransform);
 	pointLight.transform.SetParent(neighTransform);
-
-
 
 	neighbourhood->Update();
 
 	int chosenBuilding = 0;
 
 	glm::vec3 buildingLocalPos(0.0f);
+	glm::vec3 prevBuildingLocalPos = buildingLocalPos;
 	glm::vec3 housesLocalPos(0.0f); //house.transform->GetLocalPosition();
 	glm::vec3 prevHousesLocalPos = housesLocalPos;
 	// Main loop
@@ -289,7 +288,7 @@ int main(int, char**)
 
 			ImGui::InputInt("Chosen building", &chosenBuilding);
 			ImGui::SliderFloat3("Building local pos", glm::value_ptr(buildingLocalPos), -10.0f, 10.0f);
-			ImGui::InputFloat3("houses local pos", glm::value_ptr(housesLocalPos));
+			ImGui::InputFloat3("Plane local pos", glm::value_ptr(housesLocalPos));
 
 			ImGui::Text("Material");
 			ImGui::SliderFloat("Shininess", &shininess, 0.0f, 256.0f);
@@ -302,8 +301,8 @@ int main(int, char**)
 
 			ImGui::Text("POINT LIGHT");
 			ImGui::Checkbox("Point light", &isPointLight);
-			ImGui::DragFloat3("Point light position", glm::value_ptr(pointLightPosition),
-				.1f, -10.0f, 10.0f);
+			//ImGui::DragFloat3("Point light position", glm::value_ptr(pointLightPosition),
+			//	.1f, -10.0f, 10.0f);
 			ImGui::ColorEdit3("Point light ambient", glm::value_ptr(pointLightAmbient));
 			ImGui::ColorEdit3("Point light diffuse", glm::value_ptr(pointLightDiffuse));
 			ImGui::ColorEdit3("Point light specular", glm::value_ptr(pointLightSpecular));
@@ -343,9 +342,12 @@ int main(int, char**)
 			ImGui::End();
 		}
 
+		pointLightPosition = pointLight.transform.GetLocalPosition();
+
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
 		glm::mat4 VP = projection * camera.GetViewMatrix();
 
+		//...::SHADER UPDATES::...
 		lightShader.use();
 		lightShader.setMat4("VP", VP);
 		lightShader.setVec3("viewPos", camera.Position);
@@ -405,7 +407,7 @@ int main(int, char**)
 		lightShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
 		lightShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
 
-
+		
 		texturedShader.use();
 		texturedShader.setMat4("VP", VP);
 		texturedShader.setVec3("viewPos", camera.Position);
@@ -466,22 +468,30 @@ int main(int, char**)
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
+		//...::SHADER UPDATES END::...
 
-
-		pointLight.transform.SetLocalPosition(pointLightPosition);
-		spotLightGizmo.transform.SetLocalPosition(spotLightPosition);
+		spotLightGizmo.transform.SetLocalPosition(spotLightPosition); 
 		spotLightGizmo.transform.SetLocalRotation(spotLightDirection);
 
 		spotLight1Gizmo.transform.SetLocalPosition(spotLight1Position);
 		spotLight1Gizmo.transform.SetLocalRotation(spotLight1Direction);
 
-		house->instanceTransforms[chosenBuilding]->SetLocalPosition(buildingLocalPos);
-		//roof->instanceTransforms[chosenBuilding]->SetLocalPosition({0,2,0});
+		if(buildingLocalPos != prevBuildingLocalPos)
+		{
+			prevBuildingLocalPos = buildingLocalPos;
+			house->instanceTransforms[chosenBuilding]->SetLocalPosition(buildingLocalPos);
+		}
+
 		if (housesLocalPos != prevHousesLocalPos)
 		{
 			prevHousesLocalPos = housesLocalPos;
 			neighTransform->SetLocalPosition(housesLocalPos);
 		}
+
+		const auto a = glfwGetTime();
+		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(glfwGetTime()));
+		pointLight.transform.SetLocalPosition({10 * glm::cos(a), 0, 10* glm::sin(a)});
+
 		neighTransform->Update();
 
 		neighbourhood->Draw();
