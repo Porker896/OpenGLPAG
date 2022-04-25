@@ -12,6 +12,7 @@ out vec2 TexCoords;
 uniform mat4 VP;
 uniform vec3 offset;
 uniform int chosenInstance;
+uniform mat4 mainObjectModel;
 
 void main()
 {
@@ -26,5 +27,5 @@ void main()
     Normal = mat3(transpose(inverse(instanceMatrix))) * aNormal;  
     TexCoords = aTexCoords;
     
-    gl_Position = VP * vec4(FragPos, 1.0);
+    gl_Position = VP * mainObjectModel *  vec4(FragPos, 1.0);
 }

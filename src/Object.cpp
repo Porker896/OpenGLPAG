@@ -111,6 +111,8 @@ void InstancedObject::PrepareInstanceMatricesBuffer()
 
 void InstancedObject::UpdateInstanceMatricesBuffer()
 {
+	shader->setMat4("mainObjectModel", transform.GetModelMatrix());
+
 	std::vector<glm::mat4> instanceMatrices;
 	for (const auto& transform : instanceTransforms)
 		instanceMatrices.emplace_back(transform->GetModelMatrix());
