@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Camera.h"
+#include "Cubemap.h"
 #include "Object.h"
 
 float lastX = 1280.0f / 2.0f;
@@ -148,7 +149,19 @@ int main(int, char**)
 	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
 	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
 	Shader texturedShader("res/shaders/textured.vert", "res/shaders/light.frag");
+	Shader cubemapShader("res/shaders/cubemap.vert","res/shaders/cubemap.frag");
 
+	static const std::vector<std::string> f =
+		{
+		"res/textures/skybox/right.jpg",
+		"res/textures/skybox/left.jpg",
+		"res/textures/skybox/top.jpg",
+		"res/textures/skybox/bottom.jpg",
+		"res/textures/skybox/front.jpg",
+		"res/textures/skybox/back.jpg",
+		};
+
+	Cubemap cubemap(f, &cubemapShader);
 	float deltaTime = 0;
 	float lastFrame = 0;
 
@@ -266,6 +279,7 @@ int main(int, char**)
 	glm::vec3 neigbourhoodLocalPos(0.0f);
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	while (!glfwWindowShouldClose(window))
@@ -473,6 +487,9 @@ int main(int, char**)
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
+
+		cubemapShader.use();
+		cubemapShader.setMat4("VP", VP);
 		//...::SHADER UPDATES END::...
 
 
@@ -512,6 +529,8 @@ int main(int, char**)
 		pointLight.Draw();
 		spotLightGizmo.Draw();
 		spotLight1Gizmo.Draw();
+
+		cubemap.Draw();
 
 		// Rendering
 		ImGui::Render();
