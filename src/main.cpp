@@ -25,7 +25,7 @@ bool wireframe = false;
 bool cursor = false;
 
 
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -46,6 +46,12 @@ static void processInput(GLFWwindow* window, float deltaTime)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
+	//if (glfwGetKey(window, GLFW_MOUSE_BUTTON_1))
+	//	return;
+
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+		printf("RRRRRRR\n");
+
 	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
 	{
 		if (cursor)
@@ -65,6 +71,7 @@ static void processInput(GLFWwindow* window, float deltaTime)
 	}
 
 }
+
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -120,6 +127,8 @@ int main(int, char**)
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+
+
 	glfwSwapInterval(0); // Enable vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -135,6 +144,7 @@ int main(int, char**)
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
 
@@ -149,17 +159,18 @@ int main(int, char**)
 	Shader basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
 	Shader lightShader("res/shaders/light.vert", "res/shaders/light.frag");
 	Shader texturedShader("res/shaders/textured.vert", "res/shaders/light.frag");
-	Shader cubemapShader("res/shaders/cubemap.vert","res/shaders/cubemap.frag");
+	Shader cubemapShader("res/shaders/cubemap.vert", "res/shaders/cubemap.frag");
+	Shader gunShader("res/shaders/gun.vert", "res/shaders/light.frag");
 
 	static const std::vector<std::string> f =
-		{
-		"res/textures/skybox/right.jpg",
-		"res/textures/skybox/left.jpg",
-		"res/textures/skybox/top.jpg",
-		"res/textures/skybox/bottom.jpg",
-		"res/textures/skybox/front.jpg",
-		"res/textures/skybox/back.jpg",
-		};
+	{
+	"res/textures/skybox/right.jpg",
+	"res/textures/skybox/left.jpg",
+	"res/textures/skybox/top.jpg",
+	"res/textures/skybox/bottom.jpg",
+	"res/textures/skybox/front.jpg",
+	"res/textures/skybox/back.jpg",
+	};
 
 	Cubemap cubemap(f, &cubemapShader);
 	float deltaTime = 0;
@@ -220,7 +231,6 @@ int main(int, char**)
 	auto pyramidModel = new Model("res/models/pyramid/pyramid.obj");
 	auto plane = new Model("res/models/plane/plane.obj");
 
-
 	auto neighbourhood = new Object(plane, &texturedShader);
 
 	auto neighTransform = &neighbourhood->transform;
@@ -253,11 +263,15 @@ int main(int, char**)
 	auto house = new InstancedObject(cubeModel, &lightShader, houseTransforms);
 	auto roof = new InstancedObject(pyramidModel, &lightShader, roofTransforms);
 
-
-
 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
+	Object gun("res/models/gun/Handgun_obj.obj", &gunShader);
+	
+	gun.transform.SetLocalRotation({0,90.0f,10.0f});
+	gun.transform.SetLocalRotationZ(10.0f);
+	gun.transform.SetLocalPosition({0,-.8,-1.5});
+	gun.transform.Update();
 
 	const auto gizmoScale = glm::vec3(0.2f);
 	spotLightGizmo.transform.SetLocalScale(gizmoScale);
@@ -277,11 +291,15 @@ int main(int, char**)
 	glm::vec3 housesLocalPos(0.0f); //house.transform->GetLocalPosition();
 	glm::vec3 prevHousesLocalPos = housesLocalPos;
 	glm::vec3 neigbourhoodLocalPos(0.0f);
+	glm::vec3 prevNeigbourhoodLocalPos = neigbourhoodLocalPos;
+
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+
+	unsigned ammoCount = 10;
 	while (!glfwWindowShouldClose(window))
 	{
 		auto currentFrame = static_cast<float>(glfwGetTime());
@@ -360,11 +378,17 @@ int main(int, char**)
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::End();
 		}
+		{
+			ImGui::Begin("Ammo");
+			ImGui::Text("%d", ammoCount);
+			ImGui::End();
+		}
 
 		pointLightPosition = pointLight.transform.GetLocalPosition();
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
 		glm::mat4 VP = projection * camera.GetViewMatrix();
+		glm::mat4 skyboxVP = projection * glm::mat4(glm::mat3(camera.GetViewMatrix())); //remove translation
 
 		//...::SHADER UPDATES::...
 		lightShader.use();
@@ -489,7 +513,67 @@ int main(int, char**)
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
 		cubemapShader.use();
-		cubemapShader.setMat4("VP", VP);
+		cubemapShader.setMat4("VP", skyboxVP);
+
+		
+
+		gunShader.use();
+		gunShader.setMat4("VP", VP);
+		gunShader.setVec3("viewPos", camera.Position);
+
+		gunShader.setFloat("shininess", shininess);
+
+		gunShader.setBool("dirLight.isActive", isDirLight);
+		gunShader.setVec3("dirLight.direction", direction);
+		gunShader.setVec3("dirLight.colors.ambient", ambient);
+		gunShader.setVec3("dirLight.colors.diffuse", diffuse);
+		gunShader.setVec3("dirLight.colors.specular", specular);
+
+		//POINT LIGHT
+		gunShader.setBool("pointLights[0].isActive", isPointLight);
+
+		gunShader.setVec3("pointLights[0].position", pointLightPosition);
+		gunShader.setFloat("pointLights[0].att.constant", pointLightConstant);
+		gunShader.setFloat("pointLights[0].att.linear", pointLightLinear);
+		gunShader.setFloat("pointLights[0].att.quadratic", pointLightQuadratic);
+
+		gunShader.setVec3("pointLights[0].colors.ambient", pointLightAmbient);
+		gunShader.setVec3("pointLights[0].colors.diffuse", pointLightDiffuse);
+		gunShader.setVec3("pointLights[0].colors.specular", pointLightSpecular);
+
+		//SPOT LIGHT 
+		gunShader.setBool("spotLights[0].isActive", isSpotActive);
+
+		gunShader.setVec3("spotLights[0].position", spotLightPosition);
+		gunShader.setVec3("spotLights[0].direction", spotLightDirection);
+
+		gunShader.setFloat("spotLights[0].att.constant", spotLightConstant);
+		gunShader.setFloat("spotLights[0].att.linear", spotLightLinear);
+		gunShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
+
+		gunShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
+		gunShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
+		gunShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
+
+		gunShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
+		gunShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
+
+		
+		gunShader.setBool("spotLights[1].isActive", isSpot1Active);
+
+		gunShader.setVec3("spotLights[1].position", spotLight1Position);
+		gunShader.setVec3("spotLights[1].direction", spotLight1Direction);
+		gunShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
+		gunShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
+		gunShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
+
+		gunShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
+		gunShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
+		gunShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
+
+		gunShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
+		gunShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
+
 		//...::SHADER UPDATES END::...
 
 
@@ -502,7 +586,8 @@ int main(int, char**)
 		if (buildingLocalPos != prevBuildingLocalPos)
 		{
 			prevBuildingLocalPos = buildingLocalPos;
-			house->instanceTransforms[chosenBuilding]->SetLocalPosition(buildingLocalPos);
+			const auto housePos = house->instanceTransforms[chosenBuilding]->GetLocalPosition();
+			house->instanceTransforms[chosenBuilding]->SetLocalPosition(housePos + buildingLocalPos);
 		}
 
 		if (housesLocalPos != prevHousesLocalPos)
@@ -511,7 +596,12 @@ int main(int, char**)
 			neighTransform->SetLocalPosition(housesLocalPos);
 		}
 
-		house->transform.SetLocalPosition(neigbourhoodLocalPos);
+		if (neigbourhoodLocalPos != prevNeigbourhoodLocalPos)
+		{
+			prevNeigbourhoodLocalPos = neigbourhoodLocalPos;
+			house->transform.SetLocalPosition(neigbourhoodLocalPos);
+		}
+
 		house->transform.Update();
 
 
@@ -531,6 +621,11 @@ int main(int, char**)
 		spotLight1Gizmo.Draw();
 
 		cubemap.Draw();
+
+		// Draw Weapon
+		glClear(GL_DEPTH_BUFFER_BIT);
+		gun.Draw();
+
 
 		// Rendering
 		ImGui::Render();
