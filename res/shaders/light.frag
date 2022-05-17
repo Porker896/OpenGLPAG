@@ -22,7 +22,7 @@ struct Attenuation
 
 float calcAttenuation(Attenuation att, float distance)
 {
-    return ( 1.0f / (att.constant + att.linear * distance + att.quadratic * (distance * distance)) );
+    return ( 1.0f / ( att.constant + att.linear * distance + att.quadratic * (distance * distance) ) );
 }
 
 struct DirLight

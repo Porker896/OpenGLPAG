@@ -268,8 +268,7 @@ int main(int, char**)
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
 	Object gun("res/models/gun/Handgun_obj.obj", &gunShader);
 	
-	gun.transform.SetLocalRotation({0,90.0f,10.0f});
-	gun.transform.SetLocalRotationZ(10.0f);
+	gun.transform.SetLocalRotation({0,90.0f,0});
 	gun.transform.SetLocalPosition({0,-.8,-1.5});
 	gun.transform.Update();
 
@@ -279,7 +278,9 @@ int main(int, char**)
 	pointLight.transform.SetLocalScale(gizmoScale);
 
 	spotLightGizmo.transform.SetParent(neighTransform);
+	spotLightGizmo.transform.SetLocalPosition({0,10,0});
 	spotLight1Gizmo.transform.SetParent(neighTransform);
+	spotLight1Gizmo.transform.SetLocalPosition({10,10,0});
 	pointLight.transform.SetParent(neighTransform);
 
 	neighbourhood->Update();
@@ -518,8 +519,9 @@ int main(int, char**)
 		
 
 		gunShader.use();
-		gunShader.setMat4("VP", VP);
-		gunShader.setVec3("viewPos", camera.Position);
+		gunShader.setMat4("projection", projection);
+		gunShader.setMat4("VP", camera.GetViewMatrix());
+		gunShader.setVec3("viewPos",camera.Position);
 
 		gunShader.setFloat("shininess", shininess);
 
@@ -603,13 +605,17 @@ int main(int, char**)
 		}
 
 		house->transform.Update();
+		//gun.transform.SetLocalPosition(camera.Position + glm::vec3{0,0,1.0f});
+		//gun.transform.Update();
+		//gun.transform.SetModelMatrix(gun.transform.GetModelMatrix() * camera.GetViewMatrix());
+		//gun.transform.Update();
+
 
 
 		const auto a = glfwGetTime();
-		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(glfwGetTime()));
-		pointLight.transform.SetLocalRotationY(15 * static_cast<float>(glfwGetTime()));
+		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(a));
+		pointLight.transform.SetLocalRotationY(15 * static_cast<float>(a));
 		pointLight.transform.SetLocalPosition({ 10 * glm::sin(a), 10 + 10 * glm::cos(a), 0 });
-
 
 		neighTransform->Update();
 
