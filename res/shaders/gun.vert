@@ -19,6 +19,7 @@ void main()
     FragPos = vec3(pos);
 
     Normal = mat3( transpose( inverse( VP ) ) ) * aNormal;  
+
     TexCoords = aTexCoords;
     gl_Position = projection * pos;
 

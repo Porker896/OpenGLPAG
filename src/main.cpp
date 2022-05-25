@@ -15,6 +15,8 @@
 #include "Camera.h"
 #include "Cubemap.h"
 #include "Object.h"
+#include "LightManager.h"
+#include "GunManager.h"
 
 float lastX = 1280.0f / 2.0f;
 float lastY = 720.0f / 2.0f;
@@ -24,6 +26,8 @@ bool firstMouse = true;
 bool wireframe = false;
 bool cursor = false;
 
+LightManager lightManager;
+GunManager gunManager;
 
 Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
 
@@ -161,6 +165,12 @@ int main(int, char**)
 	Shader texturedShader("res/shaders/textured.vert", "res/shaders/light.frag");
 	Shader cubemapShader("res/shaders/cubemap.vert", "res/shaders/cubemap.frag");
 	Shader gunShader("res/shaders/gun.vert", "res/shaders/light.frag");
+
+	//lightManager.AddShader(&basicShader);
+	lightManager.AddShader(&lightShader);
+	lightManager.AddShader(&texturedShader);
+	//lightManager.AddShader(&cubemapShader);
+	lightManager.AddShader(&gunShader);
 
 	static const std::vector<std::string> f =
 	{
@@ -301,6 +311,9 @@ int main(int, char**)
 	glCullFace(GL_BACK);
 
 	unsigned ammoCount = 10;
+
+	glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		auto currentFrame = static_cast<float>(glfwGetTime());
@@ -322,75 +335,88 @@ int main(int, char**)
 		{
 			ImGui::Begin("Inspector");
 
-			ImGui::InputInt("Chosen building", &chosenBuilding);
-			ImGui::SliderFloat3("Building local pos", glm::value_ptr(buildingLocalPos), -10.0f, 10.0f);
+			ImGui::InputInt("Chosen building", &lightManager.state.instance);
+			ImGui::SliderFloat3("Building local pos", glm::value_ptr(lightManager.state.offset), -10.0f, 10.0f);
 			ImGui::InputFloat3("Plane local pos", glm::value_ptr(housesLocalPos));
 
 			ImGui::InputFloat3("N loc", glm::value_ptr(neigbourhoodLocalPos));
 
 			ImGui::Text("Material");
-			ImGui::SliderFloat("Shininess", &shininess, 0.0f, 256.0f);
+			ImGui::SliderFloat("Shininess", &lightManager.state.shininess, 0.0f, 256.0f);
 			ImGui::ColorEdit3("clear color", reinterpret_cast<float*>(&clear_color));
-			ImGui::Checkbox("Directional light", &isDirLight);
-			ImGui::SliderFloat3("Direction", glm::value_ptr(direction), -1.0f, 1.0f);
-			ImGui::ColorEdit3("Ambient", glm::value_ptr(ambient));
-			ImGui::ColorEdit3("Diffuse", glm::value_ptr(diffuse));
-			ImGui::ColorEdit3("Specular", glm::value_ptr(specular));
+
+			ImGui::Checkbox("Directional light", &lightManager.state.dirLight.active);
+			ImGui::SliderFloat3("Direction", glm::value_ptr(lightManager.state.dirLight.dir), -1.0f, 1.0f);
+			ImGui::ColorEdit3("Ambient", glm::value_ptr(lightManager.state.dirLight.color.ambient));
+			ImGui::ColorEdit3("Diffuse", glm::value_ptr(lightManager.state.dirLight.color.diffuse));
+			ImGui::ColorEdit3("Specular", glm::value_ptr(lightManager.state.dirLight.color.specular));
 
 			ImGui::Text("POINT LIGHT");
-			ImGui::Checkbox("Point light", &isPointLight);
+			ImGui::Checkbox("Point light", &lightManager.state.pointLight.active);
 			//ImGui::DragFloat3("Point light position", glm::value_ptr(pointLightPosition),
 			//	.1f, -10.0f, 10.0f);
-			ImGui::ColorEdit3("Point light ambient", glm::value_ptr(pointLightAmbient));
-			ImGui::ColorEdit3("Point light diffuse", glm::value_ptr(pointLightDiffuse));
-			ImGui::ColorEdit3("Point light specular", glm::value_ptr(pointLightSpecular));
-			ImGui::InputFloat("Point light constant", &pointLightConstant);
-			ImGui::InputFloat("Point light linear", &pointLightLinear);
-			ImGui::InputFloat("Point light quadratic", &pointLightQuadratic);
+			ImGui::ColorEdit3("Point light ambient", glm::value_ptr(lightManager.state.pointLight.color.ambient));
+			ImGui::ColorEdit3("Point light diffuse", glm::value_ptr(lightManager.state.pointLight.color.diffuse));
+			ImGui::ColorEdit3("Point light specular", glm::value_ptr(lightManager.state.pointLight.color.specular));
+			ImGui::InputFloat("Point light constant", &lightManager.state.pointLight.constant);
+			ImGui::InputFloat("Point light linear", &lightManager.state.pointLight.linear);
+			ImGui::InputFloat("Point light quadratic", &lightManager.state.pointLight.quadratic);
 
 			ImGui::Text("SPOT LIGHT");
-			ImGui::Checkbox("Spot light", &isSpotActive);
-			ImGui::DragFloat3("Spot light position", glm::value_ptr(spotLightPosition), .1f, -10.0f, 10.0f);
-			ImGui::SliderFloat3("Spot light direction", glm::value_ptr(spotLightDirection), -1.0f, 1.0f);
+			ImGui::Checkbox("Spot light", &lightManager.state.spotLights[0].active);
+			ImGui::DragFloat3("Spot light position", glm::value_ptr(lightManager.state.spotLights[0].pos), .1f, -10.0f, 10.0f);
+			ImGui::SliderFloat3("Spot light direction", glm::value_ptr(lightManager.state.spotLights[0].dir), -1.0f, 1.0f);
 
-			ImGui::ColorEdit3("Spot light ambient", glm::value_ptr(spotLightAmbient));
-			ImGui::ColorEdit3("Spot light diffuse", glm::value_ptr(spotLightDiffuse));
-			ImGui::ColorEdit3("Spot light specular", glm::value_ptr(spotLightSpecular));
-			ImGui::InputFloat("Spot light constant", &spotLightConstant);
-			ImGui::InputFloat("Spot light linear", &spotLightLinear);
-			ImGui::InputFloat("Spot light quadratic", &spotLightQuadratic);
-			ImGui::InputFloat("Spot light cut off", &spotLightCutOff);
-			ImGui::InputFloat("Spot light outer cut off", &spotLightOuterCutOff);
+			ImGui::ColorEdit3("Spot light ambient", glm::value_ptr(lightManager.state.spotLights[0].color.ambient));
+			ImGui::ColorEdit3("Spot light diffuse", glm::value_ptr(lightManager.state.spotLights[0].color.diffuse));
+			ImGui::ColorEdit3("Spot light specular", glm::value_ptr(lightManager.state.spotLights[0].color.specular));
+			ImGui::InputFloat("Spot light constant", &lightManager.state.spotLights[0].constant);
+			ImGui::InputFloat("Spot light linear", &lightManager.state.spotLights[0].linear);
+			ImGui::InputFloat("Spot light quadratic", &lightManager.state.spotLights[0].quadratic);
+			ImGui::InputFloat("Spot light cut off", &lightManager.state.spotLights[0].cutOff);
+			ImGui::InputFloat("Spot light outer cut off", &lightManager.state.spotLights[0].outerCutOff);
 
 			ImGui::Text("SPOT LIGHT 1");
-			ImGui::Checkbox("Spot light 1", &isSpot1Active);
-			ImGui::DragFloat3("Spot light 1 position", glm::value_ptr(spotLight1Position), .1f, -10.0f, 10.0f);
-			ImGui::SliderFloat3("Spot light 1 direction", glm::value_ptr(spotLight1Direction), -1.0f, 1.0f);
+			ImGui::Checkbox("Spot light 1", &lightManager.state.spotLights[1].active);
+			ImGui::DragFloat3("Spot light 1 position", glm::value_ptr(lightManager.state.spotLights[1].pos), .1f, -10.0f, 10.0f);
+			ImGui::SliderFloat3("Spot light 1 direction", glm::value_ptr(lightManager.state.spotLights[1].dir), -1.0f, 1.0f);
 
-			ImGui::ColorEdit3("Spot light 1 ambient", glm::value_ptr(spotLight1Ambient));
-			ImGui::ColorEdit3("Spot light 1 diffuse", glm::value_ptr(spotLight1Diffuse));
-			ImGui::ColorEdit3("Spot light 1 specular", glm::value_ptr(spotLight1Specular));
-			ImGui::InputFloat("Spot light 1 constant", &spotLight1Constant);
-			ImGui::InputFloat("Spot light 1 linear", &spotLight1Linear);
-			ImGui::InputFloat("Spot light 1 quadratic", &spotLight1Quadratic);
-			ImGui::InputFloat("Spot light 1 cut off", &spotLight1CutOff);
-			ImGui::InputFloat("Spot light 1 outer cut off", &spotLight1OuterCutOff);
+			ImGui::ColorEdit3("Spot light 1 ambient", glm::value_ptr(lightManager.state.spotLights[1].color.ambient));
+			ImGui::ColorEdit3("Spot light 1 diffuse", glm::value_ptr(lightManager.state.spotLights[1].color.diffuse));
+			ImGui::ColorEdit3("Spot light 1 specular", glm::value_ptr(lightManager.state.spotLights[1].color.specular));
+			ImGui::InputFloat("Spot light 1 constant", &lightManager.state.spotLights[1].constant);
+			ImGui::InputFloat("Spot light 1 linear", &lightManager.state.spotLights[1].linear);
+			ImGui::InputFloat("Spot light 1 quadratic", &lightManager.state.spotLights[1].quadratic);
+			ImGui::InputFloat("Spot light 1 cut off", &lightManager.state.spotLights[1].cutOff);
+			ImGui::InputFloat("Spot light 1 outer cut off", &lightManager.state.spotLights[1].outerCutOff);
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, 
+				ImGui::GetIO().Framerate);
 			ImGui::End();
 		}
+
 		{
 			ImGui::Begin("Ammo");
 			ImGui::Text("%d", ammoCount);
 			ImGui::End();
 		}
 
-		pointLightPosition = pointLight.transform.GetLocalPosition();
+		const auto currentCam = camera.GetViewMatrix();
 
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 1280.0f / 720.0f, 0.1f, 100.0f);
-		glm::mat4 VP = projection * camera.GetViewMatrix();
+		//pointLightPosition = pointLight.transform.GetLocalPosition();
+
+		glm::mat4 VP = projection * currentCam;
 		glm::mat4 skyboxVP = projection * glm::mat4(glm::mat3(camera.GetViewMatrix())); //remove translation
 
+		lightManager.state.VP = VP;
+		lightManager.state.viewPos = camera.Position;
+		lightManager.state.pointLight.pos = pointLight.transform.GetLocalPosition();
+
+		cubemapShader.use();
+		cubemapShader.setMat4("VP", skyboxVP);
+
+
+		/*
 		//...::SHADER UPDATES::...
 		lightShader.use();
 		lightShader.setMat4("VP", VP);
@@ -513,15 +539,9 @@ int main(int, char**)
 		basicShader.setMat4("VP", VP);
 		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
-		cubemapShader.use();
-		cubemapShader.setMat4("VP", skyboxVP);
-
+		
 		
 
-		gunShader.use();
-		gunShader.setMat4("projection", projection);
-		gunShader.setMat4("VP", camera.GetViewMatrix());
-		gunShader.setVec3("viewPos",camera.Position);
 
 		gunShader.setFloat("shininess", shininess);
 
@@ -577,13 +597,27 @@ int main(int, char**)
 		gunShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
 
 		//...::SHADER UPDATES END::...
+		*/
+
+		lightManager.Update();
 
 
-		spotLightGizmo.transform.SetLocalPosition(spotLightPosition);
-		spotLightGizmo.transform.SetLocalRotation(spotLightDirection);
+		basicShader.use();
+		basicShader.setMat4("VP", VP);
+		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
-		spotLight1Gizmo.transform.SetLocalPosition(spotLight1Position);
-		spotLight1Gizmo.transform.SetLocalRotation(spotLight1Direction);
+		
+		gunShader.use();
+		gunShader.setMat4("projection", projection);
+		gunShader.setMat4("VP", camera.GetViewMatrix());
+		gunShader.setVec3("viewPos", camera.Position);
+
+
+		spotLightGizmo.transform.SetLocalPosition(lightManager.state.spotLights[0].pos);
+		spotLightGizmo.transform.SetLocalRotation(lightManager.state.spotLights[0].dir);
+
+		spotLight1Gizmo.transform.SetLocalPosition(lightManager.state.spotLights[1].pos);
+		spotLight1Gizmo.transform.SetLocalRotation(lightManager.state.spotLights[1].dir);
 
 		if (buildingLocalPos != prevBuildingLocalPos)
 		{
@@ -605,12 +639,6 @@ int main(int, char**)
 		}
 
 		house->transform.Update();
-		//gun.transform.SetLocalPosition(camera.Position + glm::vec3{0,0,1.0f});
-		//gun.transform.Update();
-		//gun.transform.SetModelMatrix(gun.transform.GetModelMatrix() * camera.GetViewMatrix());
-		//gun.transform.Update();
-
-
 
 		const auto a = glfwGetTime();
 		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(a));
