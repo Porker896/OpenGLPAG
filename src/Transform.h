@@ -41,6 +41,9 @@ private:
 	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 
+	glm::mat4 rotationMatrix = glm::mat4(1.0f);
+	glm::mat4 scaleMatrix = glm::mat4(1.0f);
+
 	//scene graph
 	bool dirty = true;
 	Transform* parent = nullptr;

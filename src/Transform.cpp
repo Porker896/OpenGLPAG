@@ -8,7 +8,7 @@
 
 Transform::Transform() = default;
 
-Transform::Transform(const glm::mat4 & model) : modelMatrix(model)
+Transform::Transform(const glm::mat4& model) : modelMatrix(model)
 {
 	glm::quat rot;
 	glm::vec4 perspective;
@@ -21,6 +21,7 @@ Transform::Transform(const glm::mat4 & model) : modelMatrix(model)
 void Transform::Update(bool parentDirty)
 {
 	parentDirty |= dirty;
+
 	if (parentDirty)
 	{
 		ComputeModelMatrix();
@@ -38,48 +39,53 @@ void Transform::ComputeModelMatrix()
 	const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f),
 		glm::radians(eulerRot.x),
 		glm::vec3(1.0f, 0.0f, 0.0f));
+
 	const glm::mat4 transformY = glm::rotate(glm::mat4(1.0f),
 		glm::radians(eulerRot.y),
 		glm::vec3(0.0f, 1.0f, 0.0f));
+
 	const glm::mat4 transformZ = glm::rotate(glm::mat4(1.0f),
 		glm::radians(eulerRot.z),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	const glm::mat4 rotationMatrix = transformY * transformX * transformZ;
 
-	modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
+	rotationMatrix = transformY * transformX * transformZ;
 
-	if(parent != nullptr)
+	scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+
+	modelMatrix = glm::translate(glm::mat4(1.0f), pos) * rotationMatrix * scaleMatrix;
+
+	if (parent != nullptr)
 		modelMatrix = parent->GetModelMatrix() * modelMatrix;
 
 	dirty = false;
 }
 
-void Transform::ComputeModelMatrix(const glm::mat4 & parentGlobalMatrix)
+void Transform::ComputeModelMatrix(const glm::mat4& parentGlobalMatrix)
 {
 	ComputeModelMatrix();
 
 	modelMatrix = parentGlobalMatrix * modelMatrix;
 }
 
-void Transform::SetParent(Transform * parent)
+void Transform::SetParent(Transform* newParent)
 {
-	this->parent = parent;
+	this->parent = newParent;
 	parent->AddChild(this);
 }
 
-void Transform::AddChild(Transform * child)
+void Transform::AddChild(Transform* child)
 {
 	children.emplace_back(child);
 }
 
-void Transform::SetLocalRotation(const glm::vec3 & newRotation)
+void Transform::SetLocalRotation(const glm::vec3& newRotation)
 {
 	eulerRot = newRotation;
 	dirty = true;
 }
 
-void Transform::SetLocalPosition(const glm::vec3 & newPosition)
+void Transform::SetLocalPosition(const glm::vec3& newPosition)
 {
 	pos = newPosition;
 	dirty = true;
@@ -103,7 +109,7 @@ void Transform::SetLocalRotationZ(const float newZ)
 	dirty = true;
 }
 
-void Transform::SetModelMatrix(const glm::mat4 & newModel)
+void Transform::SetModelMatrix(const glm::mat4& newModel)
 {
 	modelMatrix = newModel;
 	glm::quat rot;
@@ -115,7 +121,7 @@ void Transform::SetModelMatrix(const glm::mat4 & newModel)
 	dirty = true;
 }
 
-void Transform::SetLocalScale(const glm::vec3 & newScale)
+void Transform::SetLocalScale(const glm::vec3& newScale)
 {
 	scale = newScale;
 	dirty = true;

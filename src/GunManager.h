@@ -15,6 +15,11 @@ class GunManager
 
 	int chosenGun = 0;
 
+	bool inAnim = false;
+
+	bool isReturning = false; 
+
+	const float FINAL_ROT = 10.0f;
 
 public:
 
@@ -26,13 +31,15 @@ public:
 
 	void DrawGun();
 
-	const int GetAmmo(int gunNo) const;
+	const int GetAmmo() const;
 
 	void Reload();
 
-	void SwitchGun();
+	void SwitchGun(int gunNo);
 
 	void Shoot();
+
+	void AnimateGun();
 };
 
 #endif

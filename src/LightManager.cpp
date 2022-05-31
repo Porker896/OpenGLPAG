@@ -10,14 +10,14 @@ void LightManager::Update() const
 {
 	const float spotLightCutOff[2] =
 	{
-		glm::radians(state.spotLights[0].cutOff),
-		glm::radians(state.spotLights[1].cutOff)
+		glm::cos(glm::radians(state.spotLights[0].cutOff)),
+		glm::cos(glm::radians(state.spotLights[1].cutOff))
 	};
 
 	const float spotLightOuterCutOff[2] =
 	{
-		glm::radians(state.spotLights[0].outerCutOff),
-		glm::radians(state.spotLights[1].outerCutOff)
+		glm::cos(glm::radians(state.spotLights[0].outerCutOff)),
+		glm::cos(glm::radians(state.spotLights[1].outerCutOff))
 	};
 
 	//update uniforms used in light calculations

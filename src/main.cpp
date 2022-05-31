@@ -50,11 +50,19 @@ static void processInput(GLFWwindow* window, float deltaTime)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
-	//if (glfwGetKey(window, GLFW_MOUSE_BUTTON_1))
-	//	return;
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+		gunManager.SwitchGun(0);
+
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+		gunManager.SwitchGun(1);
+
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		gunManager.Shoot();
+
 
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-		printf("RRRRRRR\n");
+		gunManager.Reload();
 
 	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
 	{
@@ -89,8 +97,8 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			firstMouse = false;
 		}
 
-		float xoffset = xpos - lastX;
-		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+		const float xoffset = xpos - lastX;
+		const float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
 		lastX = xpos;
 		lastY = ypos;
@@ -106,6 +114,7 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	if (!cursor)
 		camera.ProcessMouseScroll(yoffset);
 }
+
 
 int main(int, char**)
 {
@@ -132,7 +141,6 @@ int main(int, char**)
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
-
 	glfwSwapInterval(0); // Enable vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -148,7 +156,7 @@ int main(int, char**)
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	
+
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
 
@@ -186,49 +194,6 @@ int main(int, char**)
 	float deltaTime = 0;
 	float lastFrame = 0;
 
-	float shininess = 2.0f;
-
-	//DIR LIGHT PROPERTIES
-	bool isDirLight = true;
-	glm::vec3 direction(0, 0, 0);
-	glm::vec3 ambient(.19f);
-	glm::vec3 diffuse(0);
-	glm::vec3 specular(0);
-
-	//POINT LIGHT PROPERTIES
-	bool isPointLight = false;
-	glm::vec3 pointLightPosition(0.0f);
-	glm::vec3 pointLightAmbient(1.0f);
-	glm::vec3 pointLightDiffuse(1.0f);
-	glm::vec3 pointLightSpecular(1.0f);
-	float pointLightConstant = 1.0f;
-	float pointLightLinear = .7f;
-	float pointLightQuadratic = 1.8f;
-
-	//SPOTLIGHT PROPERTIES
-	bool isSpotActive = false;
-	glm::vec3 spotLightPosition(0.0f);
-	glm::vec3 spotLightDirection(0.0f);
-	glm::vec3 spotLightAmbient(1.0f);
-	glm::vec3 spotLightDiffuse(1.0f);
-	glm::vec3 spotLightSpecular(1.0f);
-	float spotLightConstant = 1.0f;
-	float spotLightLinear = .7f;
-	float spotLightQuadratic = 1.8f;
-	float spotLightCutOff = 12.5f;
-	float spotLightOuterCutOff = 17.5f;
-
-	bool isSpot1Active = false;
-	glm::vec3 spotLight1Position(0.0f);
-	glm::vec3 spotLight1Direction(0.0f);
-	glm::vec3 spotLight1Ambient(1.0f);
-	glm::vec3 spotLight1Diffuse(1.0f);
-	glm::vec3 spotLight1Specular(1.0f);
-	float spotLight1Constant = 1.0f;
-	float spotLight1Linear = .7f;
-	float spotLight1Quadratic = 1.8f;
-	float spotLight1CutOff = 12.5f;
-	float spotLight1OuterCutOff = 17.5f;
 
 	//instanced matrices preparation
 	int rows = 200, columns = 200;
@@ -277,10 +242,12 @@ int main(int, char**)
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
 	Object gun("res/models/gun/Handgun_obj.obj", &gunShader);
-	
-	gun.transform.SetLocalRotation({0,90.0f,0});
-	gun.transform.SetLocalPosition({0,-.8,-1.5});
+
+	gun.transform.SetLocalRotation({ 0,90.0f,-10.0f });
+	gun.transform.SetLocalPosition({ 0,-.8,-1.5 });
 	gun.transform.Update();
+
+	gunManager.AddGun(&gun);
 
 	const auto gizmoScale = glm::vec3(0.2f);
 	spotLightGizmo.transform.SetLocalScale(gizmoScale);
@@ -288,9 +255,9 @@ int main(int, char**)
 	pointLight.transform.SetLocalScale(gizmoScale);
 
 	spotLightGizmo.transform.SetParent(neighTransform);
-	spotLightGizmo.transform.SetLocalPosition({0,10,0});
+	spotLightGizmo.transform.SetLocalPosition({ 0,10,0 });
 	spotLight1Gizmo.transform.SetParent(neighTransform);
-	spotLight1Gizmo.transform.SetLocalPosition({10,10,0});
+	spotLight1Gizmo.transform.SetLocalPosition({ 10,10,0 });
 	pointLight.transform.SetParent(neighTransform);
 
 	neighbourhood->Update();
@@ -390,14 +357,14 @@ int main(int, char**)
 			ImGui::InputFloat("Spot light 1 cut off", &lightManager.state.spotLights[1].cutOff);
 			ImGui::InputFloat("Spot light 1 outer cut off", &lightManager.state.spotLights[1].outerCutOff);
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, 
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 				ImGui::GetIO().Framerate);
 			ImGui::End();
 		}
 
 		{
 			ImGui::Begin("Ammo");
-			ImGui::Text("%d", ammoCount);
+			ImGui::Text("%d", gunManager.GetAmmo());
 			ImGui::End();
 		}
 
@@ -415,198 +382,14 @@ int main(int, char**)
 		cubemapShader.use();
 		cubemapShader.setMat4("VP", skyboxVP);
 
-
-		/*
-		//...::SHADER UPDATES::...
-		lightShader.use();
-		lightShader.setMat4("VP", VP);
-		lightShader.setVec3("viewPos", camera.Position);
-
-		lightShader.setFloat("shininess", shininess);
-		lightShader.setVec3("offset", buildingLocalPos);
-		lightShader.setInt("chosenInstance", chosenBuilding);
-
-		lightShader.setBool("dirLight.isActive", isDirLight);
-		lightShader.setVec3("dirLight.direction", direction);
-		lightShader.setVec3("dirLight.colors.ambient", ambient);
-		lightShader.setVec3("dirLight.colors.diffuse", diffuse);
-		lightShader.setVec3("dirLight.colors.specular", specular);
-
-		//POINT LIGHT
-		lightShader.setBool("pointLights[0].isActive", isPointLight);
-
-		lightShader.setVec3("pointLights[0].position", pointLightPosition);
-		lightShader.setFloat("pointLights[0].att.constant", pointLightConstant);
-		lightShader.setFloat("pointLights[0].att.linear", pointLightLinear);
-		lightShader.setFloat("pointLights[0].att.quadratic", pointLightQuadratic);
-
-		lightShader.setVec3("pointLights[0].colors.ambient", pointLightAmbient);
-		lightShader.setVec3("pointLights[0].colors.diffuse", pointLightDiffuse);
-		lightShader.setVec3("pointLights[0].colors.specular", pointLightSpecular);
-
-		//SPOT LIGHT 
-		lightShader.setBool("spotLights[0].isActive", isSpotActive);
-
-		lightShader.setVec3("spotLights[0].position", spotLightPosition);
-		lightShader.setVec3("spotLights[0].direction", spotLightDirection);
-
-		lightShader.setFloat("spotLights[0].att.constant", spotLightConstant);
-		lightShader.setFloat("spotLights[0].att.linear", spotLightLinear);
-		lightShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
-
-		lightShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
-		lightShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
-		lightShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
-
-		lightShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
-		lightShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
-
-		//SPOT LIGHT 
-		lightShader.setBool("spotLights[1].isActive", isSpot1Active);
-
-		lightShader.setVec3("spotLights[1].position", spotLight1Position);
-		lightShader.setVec3("spotLights[1].direction", spotLight1Direction);
-		lightShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
-		lightShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
-		lightShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
-
-		lightShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
-		lightShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
-		lightShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
-
-		lightShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
-		lightShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
-
-
-		texturedShader.use();
-		texturedShader.setMat4("VP", VP);
-		texturedShader.setVec3("viewPos", camera.Position);
-
-		texturedShader.setFloat("shininess", shininess);
-
-		texturedShader.setBool("dirLight.isActive", isDirLight);
-		texturedShader.setVec3("dirLight.direction", direction);
-		texturedShader.setVec3("dirLight.colors.ambient", ambient);
-		texturedShader.setVec3("dirLight.colors.diffuse", diffuse);
-		texturedShader.setVec3("dirLight.colors.specular", specular);
-
-		//POINT LIGHT
-		texturedShader.setBool("pointLights[0].isActive", isPointLight);
-
-		texturedShader.setVec3("pointLights[0].position", pointLightPosition);
-		texturedShader.setFloat("pointLights[0].att.constant", pointLightConstant);
-		texturedShader.setFloat("pointLights[0].att.linear", pointLightLinear);
-		texturedShader.setFloat("pointLights[0].att.quadratic", pointLightQuadratic);
-
-		texturedShader.setVec3("pointLights[0].colors.ambient", pointLightAmbient);
-		texturedShader.setVec3("pointLights[0].colors.diffuse", pointLightDiffuse);
-		texturedShader.setVec3("pointLights[0].colors.specular", pointLightSpecular);
-
-		//SPOT LIGHT 
-		texturedShader.setBool("spotLights[0].isActive", isSpotActive);
-
-		texturedShader.setVec3("spotLights[0].position", spotLightPosition);
-		texturedShader.setVec3("spotLights[0].direction", spotLightDirection);
-
-		texturedShader.setFloat("spotLights[0].att.constant", spotLightConstant);
-		texturedShader.setFloat("spotLights[0].att.linear", spotLightLinear);
-		texturedShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
-
-		texturedShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
-		texturedShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
-		texturedShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
-
-		texturedShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
-		texturedShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
-
-		//SPOT LIGHT 
-		texturedShader.setBool("spotLights[1].isActive", isSpot1Active);
-
-		texturedShader.setVec3("spotLights[1].position", spotLight1Position);
-		texturedShader.setVec3("spotLights[1].direction", spotLight1Direction);
-		texturedShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
-		texturedShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
-		texturedShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
-
-		texturedShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
-		texturedShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
-		texturedShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
-
-		texturedShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
-		texturedShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
-
-		basicShader.use();
-		basicShader.setMat4("VP", VP);
-		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
-
-		
-		
-
-
-		gunShader.setFloat("shininess", shininess);
-
-		gunShader.setBool("dirLight.isActive", isDirLight);
-		gunShader.setVec3("dirLight.direction", direction);
-		gunShader.setVec3("dirLight.colors.ambient", ambient);
-		gunShader.setVec3("dirLight.colors.diffuse", diffuse);
-		gunShader.setVec3("dirLight.colors.specular", specular);
-
-		//POINT LIGHT
-		gunShader.setBool("pointLights[0].isActive", isPointLight);
-
-		gunShader.setVec3("pointLights[0].position", pointLightPosition);
-		gunShader.setFloat("pointLights[0].att.constant", pointLightConstant);
-		gunShader.setFloat("pointLights[0].att.linear", pointLightLinear);
-		gunShader.setFloat("pointLights[0].att.quadratic", pointLightQuadratic);
-
-		gunShader.setVec3("pointLights[0].colors.ambient", pointLightAmbient);
-		gunShader.setVec3("pointLights[0].colors.diffuse", pointLightDiffuse);
-		gunShader.setVec3("pointLights[0].colors.specular", pointLightSpecular);
-
-		//SPOT LIGHT 
-		gunShader.setBool("spotLights[0].isActive", isSpotActive);
-
-		gunShader.setVec3("spotLights[0].position", spotLightPosition);
-		gunShader.setVec3("spotLights[0].direction", spotLightDirection);
-
-		gunShader.setFloat("spotLights[0].att.constant", spotLightConstant);
-		gunShader.setFloat("spotLights[0].att.linear", spotLightLinear);
-		gunShader.setFloat("spotLights[0].att.quadratic", spotLightQuadratic);
-
-		gunShader.setVec3("spotLights[0].colors.ambient", spotLightAmbient);
-		gunShader.setVec3("spotLights[0].colors.diffuse", spotLightDiffuse);
-		gunShader.setVec3("spotLights[0].colors.specular", spotLightSpecular);
-
-		gunShader.setFloat("spotLights[0].cutOff", glm::cos(glm::radians(spotLightCutOff)));
-		gunShader.setFloat("spotLights[0].outerCutOff", glm::cos(glm::radians(spotLightOuterCutOff)));
-
-		
-		gunShader.setBool("spotLights[1].isActive", isSpot1Active);
-
-		gunShader.setVec3("spotLights[1].position", spotLight1Position);
-		gunShader.setVec3("spotLights[1].direction", spotLight1Direction);
-		gunShader.setFloat("spotLights[1].att.constant", spotLight1Constant);
-		gunShader.setFloat("spotLights[1].att.linear", spotLight1Linear);
-		gunShader.setFloat("spotLights[1].att.quadratic", spotLight1Quadratic);
-
-		gunShader.setVec3("spotLights[1].colors.ambient", spotLight1Ambient);
-		gunShader.setVec3("spotLights[1].colors.diffuse", spotLight1Diffuse);
-		gunShader.setVec3("spotLights[1].colors.specular", spotLight1Specular);
-
-		gunShader.setFloat("spotLights[1].cutOff", glm::cos(glm::radians(spotLight1CutOff)));
-		gunShader.setFloat("spotLights[1].outerCutOff", glm::cos(glm::radians(spotLight1OuterCutOff)));
-
-		//...::SHADER UPDATES END::...
-		*/
-
 		lightManager.Update();
 
 
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
-		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
+		//basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
 
-		
+
 		gunShader.use();
 		gunShader.setMat4("projection", projection);
 		gunShader.setMat4("VP", camera.GetViewMatrix());
@@ -614,7 +397,23 @@ int main(int, char**)
 
 
 		spotLightGizmo.transform.SetLocalPosition(lightManager.state.spotLights[0].pos);
-		spotLightGizmo.transform.SetLocalRotation(lightManager.state.spotLights[0].dir);
+		//spotLightGizmo.transform.SetLocalRotation(lightManager.state.spotLights[0].dir * 360.0f);
+
+		// TODO: spot light rotation
+
+		//const auto spotLightRotation = glm::inverse( glm::lookAt(lightManager.state.spotLights[0].pos,
+		//	lightManager.state.spotLights[0].dir + lightManager.state.spotLights[0].pos, 
+		//	glm::vec3(0,1,0)));
+
+
+		//auto spModel = glm::translate(glm::mat4(1.0f), lightManager.state.spotLights[0].pos);
+		//spModel *=glm::inverse( glm::lookAt(lightManager.state.spotLights[0].dir,
+		//	lightManager.state.spotLights[0].dir + lightManager.state.spotLights[0].pos, 
+		//	glm::vec3(0,1,0)));
+		//spModel *= glm::scale(glm::mat4(1.0f), spotLightGizmo.transform.GetLocalScale());
+		//
+		//spotLightGizmo.transform.SetModelMatrix(spModel);
+
 
 		spotLight1Gizmo.transform.SetLocalPosition(lightManager.state.spotLights[1].pos);
 		spotLight1Gizmo.transform.SetLocalRotation(lightManager.state.spotLights[1].dir);
@@ -638,14 +437,15 @@ int main(int, char**)
 			house->transform.SetLocalPosition(neigbourhoodLocalPos);
 		}
 
-		house->transform.Update();
+		//house->transform.Update();
 
-		const auto a = glfwGetTime();
-		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(a));
-		pointLight.transform.SetLocalRotationY(15 * static_cast<float>(a));
-		pointLight.transform.SetLocalPosition({ 10 * glm::sin(a), 10 + 10 * glm::cos(a), 0 });
+		const auto time = static_cast<float> (glfwGetTime());
+		pointLight.transform.SetLocalRotationX(15 * time);
+		pointLight.transform.SetLocalRotationY(15 * time);
+		pointLight.transform.SetLocalPosition({ 10 * glm::sin(time), 10 + 10 * glm::cos(time), 0 });
 
 		neighTransform->Update();
+		gunManager.Update();
 
 		neighbourhood->Draw();
 		house->Draw();
