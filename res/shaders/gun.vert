@@ -21,6 +21,7 @@ void main()
     Normal = mat3( transpose( inverse( VP ) ) ) * aNormal;  
 
     TexCoords = aTexCoords;
+    
     gl_Position = projection * pos;
 
 }

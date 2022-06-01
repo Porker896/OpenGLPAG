@@ -133,7 +133,8 @@ int main(int, char**)
 
 
 	// Create window with graphics context
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "3 - Neighbourhood", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "4 - FPS", NULL, NULL);
+	
 	if (window == nullptr)
 		return 1;
 
@@ -173,7 +174,8 @@ int main(int, char**)
 	Shader texturedShader("res/shaders/textured.vert", "res/shaders/light.frag");
 	Shader cubemapShader("res/shaders/cubemap.vert", "res/shaders/cubemap.frag");
 	Shader gunShader("res/shaders/gun.vert", "res/shaders/light.frag");
-
+	Shader rShader("res/shaders/gun.vert", "res/shaders/gun.frag");
+		
 	//lightManager.AddShader(&basicShader);
 	lightManager.AddShader(&lightShader);
 	lightManager.AddShader(&texturedShader);
@@ -211,6 +213,7 @@ int main(int, char**)
 	auto neighTransform = &neighbourhood->transform;
 
 	glm::mat4 temp = glm::translate(glm::mat4(1.0f), { -400,0,-400 });
+
 	for (auto i = 0; i < columns; i++)
 	{
 		glm::mat4 model(1.0f);
@@ -241,13 +244,21 @@ int main(int, char**)
 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
-	Object gun("res/models/gun/Handgun_obj.obj", &gunShader);
+	Object gun("res/models/gun/Handgun_obj.obj", &rShader);
+	Object ump("res/models/ump/ump47.obj", &rShader);
 
 	gun.transform.SetLocalRotation({ 0,90.0f,-10.0f });
 	gun.transform.SetLocalPosition({ 0,-.8,-1.5 });
 	gun.transform.Update();
 
+	ump.transform.SetLocalRotation({ 0,95.0f,0 });
+	ump.transform.SetLocalScale({.3f,.3f,.3f });
+
+	ump.transform.SetLocalPosition({ 0,-1.0f,-3.5f });
+	ump.transform.Update();
+	//
 	gunManager.AddGun(&gun);
+	gunManager.AddGun(&ump);
 
 	const auto gizmoScale = glm::vec3(0.2f);
 	spotLightGizmo.transform.SetLocalScale(gizmoScale);
@@ -395,6 +406,12 @@ int main(int, char**)
 		gunShader.setMat4("VP", camera.GetViewMatrix());
 		gunShader.setVec3("viewPos", camera.Position);
 
+		rShader.use();
+		rShader.setMat4("projection", projection);
+		rShader.setMat4("VP", camera.GetViewMatrix());
+		rShader.setVec3("viewPos", camera.Position);
+		rShader.setBool("isReflective", 0);
+		rShader.setFloat("refractRatio", 1.309f);
 
 		spotLightGizmo.transform.SetLocalPosition(lightManager.state.spotLights[0].pos);
 		//spotLightGizmo.transform.SetLocalRotation(lightManager.state.spotLights[0].dir * 360.0f);
@@ -457,8 +474,7 @@ int main(int, char**)
 		cubemap.Draw();
 
 		// Draw Weapon
-		glClear(GL_DEPTH_BUFFER_BIT);
-		gun.Draw();
+		gunManager.DrawGun();
 
 
 		// Rendering

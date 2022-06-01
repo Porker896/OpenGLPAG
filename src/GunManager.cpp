@@ -11,6 +11,7 @@ void GunManager::AddGun(Object* newGun)
 
 void GunManager::DrawGun()
 {
+	glClear(GL_DEPTH_BUFFER_BIT);
 	guns.at(chosenGun)->Draw();
 }
 
@@ -67,9 +68,9 @@ void GunManager::AnimateGun()
 		isReturning = true;
 	}
 
-	if (rot <= 0)
+	if (rot <= -10)
 	{
-		rot = 0;
+		rot =-10;
 		isReturning = false;
 		inAnim = false;
 	}
