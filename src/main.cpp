@@ -208,9 +208,9 @@ int main(int, char**)
 	auto pyramidModel = new Model("res/models/pyramid/pyramid.obj");
 	auto plane = new Model("res/models/plane/plane.obj");
 
-	auto neighbourhood = new Object(plane, &texturedShader);
+	Object neighbourhood(plane, &texturedShader);
 
-	auto neighTransform = &neighbourhood->transform;
+	auto neighTransform = &neighbourhood.transform;
 
 	glm::mat4 temp = glm::translate(glm::mat4(1.0f), { -400,0,-400 });
 
@@ -238,8 +238,8 @@ int main(int, char**)
 		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * 3.0f, 0.0f, 3.0f));
 	}
 
-	auto house = new InstancedObject(cubeModel, &lightShader, houseTransforms);
-	auto roof = new InstancedObject(pyramidModel, &lightShader, roofTransforms);
+	InstancedObject house(cubeModel, &lightShader, houseTransforms);
+	InstancedObject roof(pyramidModel, &lightShader, roofTransforms);
 
 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
@@ -271,7 +271,7 @@ int main(int, char**)
 	spotLight1Gizmo.transform.SetLocalPosition({ 10,10,0 });
 	pointLight.transform.SetParent(neighTransform);
 
-	neighbourhood->Update();
+	neighbourhood.Update();
 
 	int chosenBuilding = 0;
 
@@ -395,11 +395,9 @@ int main(int, char**)
 
 		lightManager.Update();
 
-
 		basicShader.use();
 		basicShader.setMat4("VP", VP);
 		//basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
-
 
 		gunShader.use();
 		gunShader.setMat4("projection", projection);
@@ -438,8 +436,8 @@ int main(int, char**)
 		if (buildingLocalPos != prevBuildingLocalPos)
 		{
 			prevBuildingLocalPos = buildingLocalPos;
-			const auto housePos = house->instanceTransforms[chosenBuilding]->GetLocalPosition();
-			house->instanceTransforms[chosenBuilding]->SetLocalPosition(housePos + buildingLocalPos);
+			const auto housePos = house.instanceTransforms[chosenBuilding]->GetLocalPosition();
+			house.instanceTransforms[chosenBuilding]->SetLocalPosition(housePos + buildingLocalPos);
 		}
 
 		if (housesLocalPos != prevHousesLocalPos)
@@ -451,10 +449,10 @@ int main(int, char**)
 		if (neigbourhoodLocalPos != prevNeigbourhoodLocalPos)
 		{
 			prevNeigbourhoodLocalPos = neigbourhoodLocalPos;
-			house->transform.SetLocalPosition(neigbourhoodLocalPos);
+			house.transform.SetLocalPosition(neigbourhoodLocalPos);
 		}
 
-		//house->transform.Update();
+		//house.transform.Update();
 
 		const auto time = static_cast<float> (glfwGetTime());
 		pointLight.transform.SetLocalRotationX(15 * time);
@@ -464,9 +462,9 @@ int main(int, char**)
 		neighTransform->Update();
 		gunManager.Update();
 
-		neighbourhood->Draw();
-		house->Draw();
-		roof->Draw();
+		neighbourhood.Draw();
+		house.Draw();
+		roof.Draw();
 		pointLight.Draw();
 		spotLightGizmo.Draw();
 		spotLight1Gizmo.Draw();
@@ -495,7 +493,6 @@ int main(int, char**)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	delete neighbourhood;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
