@@ -29,7 +29,7 @@ bool cursor = false;
 LightManager lightManager;
 GunManager gunManager;
 
-Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 1.5f, 0.0f));
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -218,9 +218,9 @@ int main(int, char**)
 	scene.emplace_back(&neighbourhood);
 
 	auto neighTransform = &neighbourhood.transform;
+	const float gap = 10.0f;
 
-	glm::mat4 temp = glm::translate(glm::mat4(1.0f), { -200, 0, -200 });
-
+	glm::mat4 temp = glm::translate(glm::mat4(1.0f), { -gap * rows, 0, -gap * columns });
 	for (auto i = 0; i < columns; i++)
 	{
 		glm::mat4 model(1.0f);
@@ -229,7 +229,7 @@ int main(int, char**)
 			auto houseTransform = new Transform();
 			auto roofTransform = new Transform();
 
-			temp = glm::translate(temp, glm::vec3(3.0f, 0.0f, 0.0f));
+			temp = glm::translate(temp, glm::vec3(gap, 0.0f, 0.0f));
 			model = glm::translate(temp, { 0, 1.5f, 0 });
 
 			houseTransform->SetModelMatrix(model);
@@ -242,7 +242,7 @@ int main(int, char**)
 
 			roofTransforms.emplace_back(roofTransform);
 		}
-		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * 3.0f, 0.0f, 3.0f));
+		temp = glm::translate(temp, glm::vec3(-1.0f * static_cast<float>(rows) * gap, 0.0f, gap));
 	}
 
 	InstancedObject house(cubeModel, &lightShader, houseTransforms);
@@ -266,10 +266,10 @@ int main(int, char**)
 	gun.transform.SetLocalRotation({ 0, 90.0f, -10.0f });
 	gun.transform.SetLocalPosition({ 0, -.8, -1.5 });
 	//gun.transform.SetLocalPosition({ 0, 0, 0 });
-	ump.transform.SetLocalRotation({ 3.0f, 95.0f, 0 });
-	ump.transform.SetLocalScale({ .4f, .4f, .4f });
+	ump.transform.SetLocalRotation({ 0.0f , 90.0f, 0 });
+	ump.transform.SetLocalScale({ .3f, .3f, .3f });
 
-	ump.transform.SetLocalPosition({ 0, -1.0f, -4.5f });
+	ump.transform.SetLocalPosition({ .5f, -1.0f, -2.0f});
 
 
 	//
@@ -298,7 +298,7 @@ int main(int, char**)
 	glm::vec3 neigbourhoodLocalPos(0.0f);
 	glm::vec3 prevNeigbourhoodLocalPos = neigbourhoodLocalPos;
 
-	float refractiveRatio = 1.0f;
+	float refractiveRatio = 0.658f;
 	bool reflective = false;
 
 	// Main loop
@@ -338,6 +338,8 @@ int main(int, char**)
 
 			ImGui::Text("Material");
 			ImGui::SliderFloat("Shininess", &lightManager.state.shininess, 0.0f, 256.0f);
+
+			ImGui::Text("Reflective / refractive properties");
 			ImGui::SliderFloat("Refractive ratio", &refractiveRatio, 0.0f, 1.0f, "%.4f");
 			ImGui::Checkbox("Reflective", &reflective);
 
