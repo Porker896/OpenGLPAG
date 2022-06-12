@@ -6,6 +6,7 @@
 #include <vector>
 
 class Object;
+class Shader;
 
 class GunManager
 {
@@ -19,9 +20,12 @@ class GunManager
 
 	bool isReturning = false; 
 
-	const float FINAL_ROT = 10.0f;
+	std::vector<float> finalRot;
+
 
 public:
+
+	Shader* gunShader = nullptr;
 
 	GunManager() = default;
 
@@ -40,6 +44,8 @@ public:
 	void Shoot();
 
 	void AnimateGun();
+
+	void InspectGun();
 };
 
 #endif

@@ -24,6 +24,7 @@ public:
 	void SetLocalRotationZ(const float newZ);
 	void SetLocalScale(const glm::vec3& newScale);
 	void SetModelMatrix(const glm::mat4& newModel);
+	void SetRotationWithMatrix(const glm::mat4& rotMat);
 
 	const glm::vec3& GetLocalPosition() const;
 	const glm::vec3& GetLocalRotation() const;
@@ -43,6 +44,8 @@ private:
 
 	glm::mat4 rotationMatrix = glm::mat4(1.0f);
 	glm::mat4 scaleMatrix = glm::mat4(1.0f);
+
+	bool calcRotMat = true; //calc rotation based eulerRot
 
 	//scene graph
 	bool dirty = true;

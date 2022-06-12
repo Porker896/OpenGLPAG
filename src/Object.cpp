@@ -12,7 +12,7 @@ Object::Object(Model* loadedModel, Shader* objShader) : model(loadedModel), shad
 
 }
 
-Object::Object(){};
+Object::Object() = default;
 
 void Object::SetModel(Model* newModel)
 {

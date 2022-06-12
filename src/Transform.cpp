@@ -36,20 +36,23 @@ void Transform::Update(bool parentDirty)
 
 void Transform::ComputeModelMatrix()
 {
-	const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f),
-		glm::radians(eulerRot.x),
-		glm::vec3(1.0f, 0.0f, 0.0f));
+	if (calcRotMat) 
+	{
+		const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f),
+			glm::radians(eulerRot.x),
+			glm::vec3(1.0f, 0.0f, 0.0f));
 
-	const glm::mat4 transformY = glm::rotate(glm::mat4(1.0f),
-		glm::radians(eulerRot.y),
-		glm::vec3(0.0f, 1.0f, 0.0f));
+		const glm::mat4 transformY = glm::rotate(glm::mat4(1.0f),
+			glm::radians(eulerRot.y),
+			glm::vec3(0.0f, 1.0f, 0.0f));
 
-	const glm::mat4 transformZ = glm::rotate(glm::mat4(1.0f),
-		glm::radians(eulerRot.z),
-		glm::vec3(0.0f, 0.0f, 1.0f));
+		const glm::mat4 transformZ = glm::rotate(glm::mat4(1.0f),
+			glm::radians(eulerRot.z),
+			glm::vec3(0.0f, 0.0f, 1.0f));
 
 
-	rotationMatrix = transformY * transformX * transformZ;
+		rotationMatrix = transformY * transformX * transformZ;
+	}
 
 	scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
 
@@ -77,11 +80,13 @@ void Transform::SetParent(Transform* newParent)
 void Transform::AddChild(Transform* child)
 {
 	children.emplace_back(child);
+	
 }
 
 void Transform::SetLocalRotation(const glm::vec3& newRotation)
 {
 	eulerRot = newRotation;
+	calcRotMat = true;
 	dirty = true;
 }
 
@@ -118,8 +123,25 @@ void Transform::SetModelMatrix(const glm::mat4& newModel)
 
 	glm::decompose(modelMatrix, scale, rot, pos, skew, perspective);
 	eulerRot = glm::eulerAngles(rot);
+
 	dirty = true;
 }
+
+void Transform::SetRotationWithMatrix(const glm::mat4& rotMat)
+{
+	glm::quat rot;
+	glm::vec4 perspective;
+	glm::vec3 skew;
+	glm::vec3 scale;
+	glm::vec3 pos;
+
+	glm::decompose(rotMat, scale, rot, pos, skew, perspective);
+	eulerRot = glm::eulerAngles(rot);
+
+	dirty = true;
+}
+
+
 
 void Transform::SetLocalScale(const glm::vec3& newScale)
 {
@@ -152,4 +174,5 @@ bool Transform::isDirty() const
 {
 	return dirty;
 }
+
 
