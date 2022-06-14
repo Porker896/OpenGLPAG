@@ -24,7 +24,7 @@ bool wireframe = false;
 bool cursor = false;
 
 
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 5.0f, 0.0f));
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -153,6 +153,8 @@ int main(int, char**)
 	float lastFrame = 0;
 
 	float shininess = 2.0f;
+	bool isBlinn = false;
+	float blinnExponent = 32.0f;
 
 	//DIR LIGHT PROPERTIES
 	bool isDirLight = true;
@@ -240,8 +242,6 @@ int main(int, char**)
 	auto house = new InstancedObject(cubeModel, &lightShader, houseTransforms);
 	auto roof = new InstancedObject(pyramidModel, &lightShader, roofTransforms);
 
-
-
 	Object spotLightGizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object spotLight1Gizmo("res/models/pyramid/pyramid.obj", &basicShader);
 	Object pointLight("res/models/cube/cube.obj", &basicShader);
@@ -264,10 +264,12 @@ int main(int, char**)
 	glm::vec3 housesLocalPos(0.0f); //house.transform->GetLocalPosition();
 	glm::vec3 prevHousesLocalPos = housesLocalPos;
 	glm::vec3 neigbourhoodLocalPos(0.0f);
+
 	// Main loop
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		auto currentFrame = static_cast<float>(glfwGetTime());
@@ -295,9 +297,14 @@ int main(int, char**)
 
 			ImGui::InputFloat3("N loc", glm::value_ptr(neigbourhoodLocalPos));
 
-			ImGui::Text("Material");
+			ImGui::Text("MAERIAL");
 			ImGui::SliderFloat("Shininess", &shininess, 0.0f, 256.0f);
+
+			ImGui::Text("MISCELLANEOUS");
 			ImGui::ColorEdit3("clear color", reinterpret_cast<float*>(&clear_color));
+			ImGui::Checkbox("Blinn-Phong lighting", &isBlinn);
+			ImGui::SliderFloat("Blinn-Phong exponent", &blinnExponent, 2.0f, 256.0f);
+
 			ImGui::Checkbox("Directional light", &isDirLight);
 			ImGui::SliderFloat3("Direction", glm::value_ptr(direction), -1.0f, 1.0f);
 			ImGui::ColorEdit3("Ambient", glm::value_ptr(ambient));
@@ -306,8 +313,7 @@ int main(int, char**)
 
 			ImGui::Text("POINT LIGHT");
 			ImGui::Checkbox("Point light", &isPointLight);
-			//ImGui::DragFloat3("Point light position", glm::value_ptr(pointLightPosition),
-			//	.1f, -10.0f, 10.0f);
+		
 			ImGui::ColorEdit3("Point light ambient", glm::value_ptr(pointLightAmbient));
 			ImGui::ColorEdit3("Point light diffuse", glm::value_ptr(pointLightDiffuse));
 			ImGui::ColorEdit3("Point light specular", glm::value_ptr(pointLightSpecular));
@@ -360,6 +366,9 @@ int main(int, char**)
 		lightShader.setFloat("shininess", shininess);
 		lightShader.setVec3("offset", buildingLocalPos);
 		lightShader.setInt("chosenInstance", chosenBuilding);
+
+		lightShader.setBool("isBlinn", isBlinn);
+		lightShader.setFloat("blinnExponent", blinnExponent);
 
 		lightShader.setBool("dirLight.isActive", isDirLight);
 		lightShader.setVec3("dirLight.direction", direction);
@@ -418,6 +427,10 @@ int main(int, char**)
 		texturedShader.setVec3("viewPos", camera.Position);
 
 		texturedShader.setFloat("shininess", shininess);
+
+		texturedShader.setBool("isBlinn", isBlinn);
+		texturedShader.setFloat("blinnExponent", blinnExponent);
+
 
 		texturedShader.setBool("dirLight.isActive", isDirLight);
 		texturedShader.setVec3("dirLight.direction", direction);
@@ -498,9 +511,9 @@ int main(int, char**)
 		house->transform.Update();
 
 
-		const auto a = glfwGetTime();
-		pointLight.transform.SetLocalRotationX(15 * static_cast<float>(glfwGetTime()));
-		pointLight.transform.SetLocalRotationY(15 * static_cast<float>(glfwGetTime()));
+		const auto a = static_cast<float>(glfwGetTime());
+		pointLight.transform.SetLocalRotationX(15 * a);
+		pointLight.transform.SetLocalRotationY(15 * a);
 		pointLight.transform.SetLocalPosition({ 10 * glm::sin(a), 10 + 10 * glm::cos(a), 0 });
 
 
@@ -509,8 +522,14 @@ int main(int, char**)
 		neighbourhood->Draw();
 		house->Draw();
 		roof->Draw();
+		basicShader.setVec3("diffuse", pointLightDiffuse * pointLightAmbient * pointLightSpecular);
+
 		pointLight.Draw();
+		basicShader.setVec3("diffuse", spotLightDiffuse * spotLightAmbient * spotLightSpecular);
+
 		spotLightGizmo.Draw();
+		basicShader.setVec3("diffuse", spotLight1Diffuse * spotLight1Ambient * spotLight1Specular);
+
 		spotLight1Gizmo.Draw();
 
 		// Rendering
